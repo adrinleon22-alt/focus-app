@@ -44,6 +44,16 @@
     <p id="history-empty" class="muted" hidden>No sessions yet.</p>
     <!-- One block per day gets added here by app.js -->
     <div id="history-list"></div>
+
+    <!-- Backup: save all data to a file, or load it back from one -->
+    <section class="backup">
+      <h2>Backup</h2>
+      <button id="export-btn" class="big-btn" type="button">Export backup</button>
+      <button id="import-btn" class="big-btn" type="button">Import backup</button>
+      <!-- The real file picker is invisible; the Import button opens it -->
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
+      <p id="backup-message" class="muted" hidden></p>
+    </section>
   </main>
 
   <!-- Screen 5: One day's sessions, one by one -->

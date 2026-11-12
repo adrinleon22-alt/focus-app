@@ -520,6 +520,107 @@ function deleteEdit() {
   showView(left.length > 0 ? "day" : "history");
 }
 
+// =====================================================================
+// BACKUP: EXPORT / IMPORT AS JSON
+// =====================================================================
+
+const backupMessage = document.getElementById("backup-message");
+const importFile = document.getElementById("import-file");
+
+// "1 session", "5 sessions"
+function countSessions(n) {
+  return n + (n === 1 ? " session" : " sessions");
+}
+
+function showBackupMessage(text) {
+  backupMessage.textContent = text;
+  backupMessage.hidden = !text;
+}
+
+// Download all sessions as a .json file.
+function exportBackup() {
+  const backup = {
+    app: "studytracker", // marks the file as ours
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    sessions: loadData().sessions,
+  };
+  const text = JSON.stringify(backup, null, 2); // indented, readable by humans
+
+  // Turn the text into a temporary file and "click" a download link for it.
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "studytracker-backup-" + localDayKey(new Date()) + ".json";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000); // clean up afterwards
+
+  showBackupMessage("Exported " + countSessions(backup.sessions.length) + ".");
+}
+
+// Is this one session complete and sensible? (Used to check imported files.)
+function isValidSession(s) {
+  return (
+    s !== null && typeof s === "object" &&
+    typeof s.id === "string" && s.id !== "" &&
+    typeof s.task === "string" && s.task !== "" &&
+    (s.subject === undefined || typeof s.subject === "string") &&
+    !isNaN(Date.parse(s.start)) &&
+    !isNaN(Date.parse(s.end)) &&
+    typeof s.pausedMs === "number" && s.pausedMs >= 0
+  );
+}
+
+// Read a chosen file and MERGE it in: only sessions whose id we don't
+// have yet are added. Nothing existing is changed or removed, and the
+// running timer is never touched.
+async function importBackup(file) {
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch (error) {
+    showBackupMessage("Couldn't read that file. Nothing was changed.");
+    return;
+  }
+
+  const sessions = parsed && parsed.sessions;
+  if (!Array.isArray(sessions) || !sessions.every(isValidSession)) {
+    showBackupMessage("That doesn't look like a Study Tracker backup. Nothing was changed.");
+    return;
+  }
+
+  const data = loadData();
+  const existingIds = new Set(data.sessions.map((s) => s.id));
+  const newSessions = sessions.filter((s) => !existingIds.has(s.id));
+
+  if (newSessions.length === 0) {
+    showBackupMessage("Nothing new: everything in the file (" + countSessions(sessions.length) + ") is already here.");
+    return;
+  }
+  if (!confirm("Import " + countSessions(newSessions.length).replace(" ", " new ") + "?")) {
+    showBackupMessage("Import cancelled. Nothing was changed.");
+    return;
+  }
+
+  // Copy only the fields we know, so a strange file can't add junk.
+  for (const s of newSessions) {
+    data.sessions.push({
+      id: s.id,
+      task: s.task,
+      subject: s.subject || "",
+      start: s.start,
+      end: s.end,
+      pausedMs: s.pausedMs,
+    });
+  }
+  saveData(data);
+  showBackupMessage("Imported " + countSessions(newSessions.length) + ".");
+  render(); // redraw History with the new days
+}
+
 // Draw one button per recent task. Tapping it fills in task + subject.
 function renderRecentTasks(sessions) {
   recentTasksBox.innerHTML = ""; // remove the old buttons
@@ -559,7 +660,19 @@ pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
 document.getElementById("today-link").addEventListener("click", () => showView("today"));
 document.getElementById("today-back").addEventListener("click", () => showView("home"));
-document.getElementById("history-link").addEventListener("click", () => showView("history"));
+document.getElementById("history-link").addEventListener("click", () => {
+  showBackupMessage(""); // don't show an old backup message
+  showView("history");
+});
+document.getElementById("export-btn").addEventListener("click", exportBackup);
+// The Import button opens the hidden file picker...
+document.getElementById("import-btn").addEventListener("click", () => importFile.click());
+// ...and once a file is picked, import it.
+importFile.addEventListener("change", async () => {
+  const file = importFile.files[0];
+  if (file) await importBackup(file);
+  importFile.value = ""; // so picking the same file again still works
+});
 document.getElementById("history-back").addEventListener("click", () => showView("home"));
 document.getElementById("day-back").addEventListener("click", () => showView("history"));
 document.getElementById("edit-cancel").addEventListener("click", () => showView("day"));
