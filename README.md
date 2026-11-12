@@ -28,6 +28,7 @@ Study apps either track too little ("you studied 3 h") or ask for too much (acco
 - **Checklists and notes.** Tap the 💡 next to the title to plan a checklist, then tick it off when the session ends.
 - **Edit anything.** Forgot to stop the timer? Fix the times; the totals update everywhere.
 - **Backup.** Export and import all data as JSON. Import *merges* by id, so it never loses data and importing twice is harmless.
+- **Responsive:** phone first; on tablets the layout widens with card grids, and on desktop the navigation becomes a side rail and Stats shows chart and day details side by side.
 - **Installable and offline** (PWA). Light and dark mode follow the phone, and the Android back gesture works between screens.
 - **Small delights:** an opening screen with the app icon and a typewriter intro (*τέλος* → *Telos*) that zooms out into the app, an egg-shaped water dial that fills to the brim, a stick figure who peeks, gasps when you pause and salutes when you stop, and "bubbly" buttons.
 

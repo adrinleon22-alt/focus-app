@@ -7,10 +7,10 @@
   <!-- Tells the browser this page supports both light and dark mode -->
   <meta name="color-scheme" content="light dark">
   <title>Telos</title>
-  <!-- "?v=7" = version number. Raise it with every release (together with CACHE_NAME
+  <!-- "?v=8" = version number. Raise it with every release (together with CACHE_NAME
        in sw.js): a new address can't come from an old saved copy, so the page,
        its styles and its code always belong to the same version. -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
@@ -109,6 +109,10 @@
   <main id="stats-screen" class="screen" hidden>
     <h1>Focus time</h1>
 
+    <!-- Two columns on big screens (chart left, day details right); stacked on phones -->
+    <div class="stats-columns">
+    <div class="stats-main">
+
     <!-- Week / Month switch on the left, daily goal on the right -->
     <div class="stats-toolbar">
       <div class="tabs">
@@ -158,6 +162,9 @@
       <p class="chart-legend muted small">✓ goal reached · red = missed · plain ring = today</p>
     </div>
 
+    </div><!-- /stats-main -->
+
+    <div class="stats-side">
     <!-- What the tapped day was spent on -->
     <div class="stats-day">
       <span id="stats-day-title"></span>
@@ -172,6 +179,8 @@
       <h2 class="small-heading">Done</h2>
       <ul id="stats-notes-list" class="notes-list"></ul>
     </div>
+    </div><!-- /stats-side -->
+    </div><!-- /stats-columns -->
 
     <!-- Recent days: the last few days you studied. Tap one to see/edit its sessions. -->
     <section class="section">
@@ -352,6 +361,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=7" defer></script>
+  <script src="app.js?v=8" defer></script>
 </body>
 </html>
