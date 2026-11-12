@@ -266,6 +266,7 @@ const screens = {
   today: todayScreen,
   history: document.getElementById("history-screen"),
   day: document.getElementById("day-screen"),
+  edit: document.getElementById("edit-screen"),
 };
 
 // Which screen to show when no timer is running: a name from `screens`.
@@ -305,6 +306,7 @@ function render() {
     } else if (currentView === "day") {
       renderDay(selectedDay, sessionsOnDay(data.sessions, selectedDay));
     }
+    // "edit" needs nothing here: openEdit() filled the form once already.
   }
 
   if (session) {
@@ -381,9 +383,14 @@ function renderDay(dayKey, daySessions) {
   daySessions.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   for (const s of daySessions) {
     const li = document.createElement("li");
+    // The whole row is a button: tap it to edit this session.
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "session-row";
+    row.addEventListener("click", () => openEdit(s.id));
 
     // Left side: "14:00–14:45" on top, task below, paused time if any
-    const info = document.createElement("div");
+    const info = document.createElement("span");
     info.className = "session-info";
     const clock = document.createElement("span");
     clock.textContent = formatClock(s.start) + "–" + formatClock(s.end);
@@ -399,9 +406,118 @@ function renderDay(dayKey, daySessions) {
     time.className = "time";
     time.textContent = formatDuration(sessionDuration(s));
 
-    li.append(info, time);
+    row.append(info, time);
+    li.appendChild(row);
     dayList.appendChild(li);
   }
+}
+
+// =====================================================================
+// EDIT / DELETE A SAVED SESSION
+// =====================================================================
+
+const editTask = document.getElementById("edit-task");
+const editSubject = document.getElementById("edit-subject");
+const editStart = document.getElementById("edit-start");
+const editEnd = document.getElementById("edit-end");
+const editPaused = document.getElementById("edit-paused");
+const editDuration = document.getElementById("edit-duration");
+const editError = document.getElementById("edit-error");
+
+// The session being edited, exactly as it was when the form opened.
+let editingOriginal = null;
+
+// ISO time -> "2026-11-12T14:05", the local format datetime-local inputs use.
+function toLocalInputValue(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return localDayKey(d) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+// Open the edit screen for one session and fill in its current values.
+// This only happens once when opening, so typing isn't overwritten later.
+function openEdit(id) {
+  const s = loadData().sessions.find((x) => x.id === id);
+  if (!s) return;
+  editingOriginal = s;
+  editTask.value = s.task;
+  editSubject.value = s.subject || "";
+  editStart.value = toLocalInputValue(s.start);
+  editEnd.value = toLocalInputValue(s.end);
+  editPaused.value = Math.round(s.pausedMs / 60000);
+  editError.hidden = true;
+  updateEditDuration();
+  showView("edit");
+}
+
+// Read the form and turn it into session values.
+// The pickers only show minutes, not seconds. So if a field was NOT
+// changed, we keep the exact original value; otherwise saving an
+// untouched session would cut off its seconds.
+function readEditForm() {
+  const o = editingOriginal;
+  // "2026-11-12T14:05" is read as local time. An emptied field gives "",
+  // which validateSession() then reports instead of crashing.
+  const toIso = (value) => (value ? new Date(value).toISOString() : "");
+  const start = editStart.value === toLocalInputValue(o.start) ? o.start : toIso(editStart.value);
+  const end = editEnd.value === toLocalInputValue(o.end) ? o.end : toIso(editEnd.value);
+  const pausedMs = Number(editPaused.value) === Math.round(o.pausedMs / 60000)
+    ? o.pausedMs
+    : Number(editPaused.value) * 60000;
+  return {
+    id: o.id, // same id: it's still the same session
+    task: editTask.value.trim(),
+    subject: editSubject.value.trim(),
+    start: start,
+    end: end,
+    pausedMs: pausedMs,
+  };
+}
+
+// Returns a message describing what's wrong, or "" if all is fine.
+function validateSession(s) {
+  if (!s.task) return "Task can't be empty.";
+  if (!editStart.value || !editEnd.value) return "Start and end are both needed.";
+  if (editPaused.value === "" || s.pausedMs < 0) return "Paused must be 0 or more minutes.";
+  const length = Date.parse(s.end) - Date.parse(s.start);
+  if (length <= 0) return "End must be after start.";
+  if (s.pausedMs > length) return "Paused time is longer than the session.";
+  return "";
+}
+
+// Live preview of the duration while you change the fields.
+function updateEditDuration() {
+  const s = readEditForm();
+  const problem = validateSession(s);
+  editDuration.textContent = problem ? "" : "Duration: " + formatDuration(sessionDuration(s));
+}
+
+function saveEdit() {
+  const updated = readEditForm();
+  const problem = validateSession(updated);
+  if (problem) {
+    editError.textContent = problem;
+    editError.hidden = false;
+    return; // nothing is saved
+  }
+  const data = loadData();
+  const index = data.sessions.findIndex((x) => x.id === updated.id);
+  if (index === -1) return; // session no longer exists
+  data.sessions[index] = updated;
+  saveData(data);
+  // Go to the session's day (a new day if the start date was changed).
+  selectedDay = localDayKey(new Date(updated.start));
+  showView("day");
+}
+
+function deleteEdit() {
+  if (!confirm("Delete this session?")) return;
+  const data = loadData();
+  data.sessions = data.sessions.filter((x) => x.id !== editingOriginal.id);
+  saveData(data);
+  // Back to the day; if that day is now empty, back to History instead.
+  const left = sessionsOnDay(data.sessions, selectedDay);
+  showView(left.length > 0 ? "day" : "history");
 }
 
 // Draw one button per recent task. Tapping it fills in task + subject.
@@ -446,6 +562,13 @@ document.getElementById("today-back").addEventListener("click", () => showView("
 document.getElementById("history-link").addEventListener("click", () => showView("history"));
 document.getElementById("history-back").addEventListener("click", () => showView("home"));
 document.getElementById("day-back").addEventListener("click", () => showView("history"));
+document.getElementById("edit-cancel").addEventListener("click", () => showView("day"));
+document.getElementById("edit-save").addEventListener("click", saveEdit);
+document.getElementById("edit-delete").addEventListener("click", deleteEdit);
+// Update the duration preview whenever any edit field changes.
+for (const input of [editStart, editEnd, editPaused]) {
+  input.addEventListener("input", updateEditDuration);
+}
 
 // Pressing Enter in either box also starts.
 for (const input of [taskInput, subjectInput]) {

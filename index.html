@@ -65,6 +65,36 @@
     <ul id="today-list" class="task-list"></ul>
   </main>
 
+  <!-- Screen 6: Edit one saved session -->
+  <main id="edit-screen" class="screen" hidden>
+    <button id="edit-cancel" class="link-btn" type="button">‹ Cancel</button>
+    <h1>Edit session</h1>
+
+    <label for="edit-task">Task</label>
+    <input id="edit-task" type="text" autocomplete="off">
+
+    <label for="edit-subject">Subject (optional)</label>
+    <input id="edit-subject" type="text" autocomplete="off">
+
+    <!-- datetime-local opens the phone's own date + time picker -->
+    <label for="edit-start">Start</label>
+    <input id="edit-start" type="datetime-local">
+
+    <label for="edit-end">End</label>
+    <input id="edit-end" type="datetime-local">
+
+    <label for="edit-paused">Paused (minutes)</label>
+    <input id="edit-paused" type="number" min="0" step="1" inputmode="numeric">
+
+    <!-- Live preview of the work time, e.g. "Duration: 0:45:00" -->
+    <p id="edit-duration" class="muted"></p>
+    <!-- Red message when something is wrong, e.g. end before start -->
+    <p id="edit-error" class="error" hidden></p>
+
+    <button id="edit-save" class="big-btn primary" type="button">Save</button>
+    <button id="edit-delete" class="big-btn danger" type="button">Delete</button>
+  </main>
+
   <!-- Screen 2: Running timer. "hidden" means it is not shown until JavaScript shows it. -->
   <main id="timer-screen" class="screen timer" hidden>
     <p id="timer-task" class="timer-task"></p>

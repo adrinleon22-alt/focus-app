@@ -53,7 +53,9 @@ label {
   color: var(--muted);
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"],
+input[type="datetime-local"] {
   font-size: 18px; /* 16px or more stops iPhones from zooming in on tap */
   padding: 14px;
   border: 1px solid var(--border);
@@ -164,6 +166,26 @@ h1 {
 
 .small {
   font-size: 14px;
+}
+
+/* Session rows on the day screen are buttons (tap to edit) but look like list rows */
+.session-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
 }
 
 /* Confirmation after Stop */
