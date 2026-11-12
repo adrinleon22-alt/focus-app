@@ -46,8 +46,75 @@
 
     <button id="start-btn" class="big-btn primary">Start</button>
 
-    <!-- Small link at the very bottom, out of the way of Start -->
-    <button id="history-link" class="link-btn bottom-link" type="button">History ›</button>
+    <!-- Small links at the very bottom, out of the way of Start -->
+    <div class="bottom-links">
+      <button id="stats-link" class="link-btn" type="button">Stats ›</button>
+      <button id="history-link" class="link-btn" type="button">History ›</button>
+    </div>
+  </main>
+
+  <!-- Screen 7: Stats. Bar chart of the last 7 days; tap a bar to see that day. -->
+  <main id="stats-screen" class="screen" hidden>
+    <button id="stats-back" class="link-btn" type="button">‹ Back</button>
+    <h1>Focus time</h1>
+
+    <!-- Week / Month switch on the left, daily goal on the right -->
+    <div class="stats-toolbar">
+      <div class="tabs">
+        <button id="tab-week" class="tab" type="button">Week</button>
+        <button id="tab-month" class="tab" type="button">Month</button>
+      </div>
+      <button id="goal-btn" class="link-btn" type="button"></button>
+    </div>
+
+    <!-- Opens when you tap "Goal: 2h ✎". − and + change it in 15-minute steps. -->
+    <div id="goal-editor" class="goal-editor" hidden>
+      <span class="muted">Daily goal, from today on</span>
+      <div class="stepper">
+        <button id="goal-minus" class="step-btn" type="button" aria-label="Less">−</button>
+        <!-- Type the goal yourself, or use − / + -->
+        <div class="goal-fields">
+          <input id="goal-hours" class="goal-input" type="number" min="0" max="12" step="any" inputmode="decimal" aria-label="Hours">
+          <span class="muted">h</span>
+          <input id="goal-minutes" class="goal-input" type="number" min="0" max="59" step="5" inputmode="numeric" aria-label="Minutes">
+          <span class="muted">min</span>
+        </div>
+        <button id="goal-plus" class="step-btn" type="button" aria-label="More">+</button>
+      </div>
+      <p id="goal-error" class="error" hidden></p>
+      <div class="goal-actions">
+        <button id="goal-cancel" class="link-btn" type="button">Cancel</button>
+        <button id="goal-save" class="big-btn primary goal-save" type="button">Save</button>
+      </div>
+    </div>
+
+    <!-- ‹ 6 – 12 Nov › or ‹ November 2026 › : step back or forward -->
+    <div class="stats-nav">
+      <button id="stats-prev" class="nav-arrow" type="button" aria-label="Previous">‹</button>
+      <span id="stats-range"></span>
+      <button id="stats-next" class="nav-arrow" type="button" aria-label="Next">›</button>
+    </div>
+
+    <!-- Week view: the bar chart gets drawn in here by app.js -->
+    <div id="stats-week">
+      <div id="stats-chart" class="chart"></div>
+      <p class="chart-legend muted small"><span class="legend-line"></span> Daily goal</p>
+    </div>
+
+    <!-- Month view: calendar with a goal ring on each day, drawn by app.js -->
+    <div id="stats-month" hidden>
+      <div id="stats-calendar" class="calendar"></div>
+      <p class="chart-legend muted small">✓ goal reached · red = missed · blue = today</p>
+    </div>
+
+    <!-- What the tapped day was spent on -->
+    <div class="stats-day">
+      <span id="stats-day-title"></span>
+      <span id="stats-day-total" class="time"></span>
+    </div>
+    <p id="stats-day-goal" class="muted small"></p>
+    <p id="stats-day-empty" class="muted" hidden>Nothing tracked on this day.</p>
+    <ul id="stats-day-list" class="task-list"></ul>
   </main>
 
   <!-- Screen 4: History. All days, newest first. -->

@@ -7,6 +7,8 @@
   --btn-bg: #eeeeee;
   --primary: #2563eb;
   --danger: #dc2626;
+  --good: #15803d; /* goal reached (checked to stay distinct from red for colour-blind eyes) */
+  --bad: #dc2626;  /* goal missed */
 }
 
 /* If the phone is in dark mode, swap the colors */
@@ -19,6 +21,8 @@
     --btn-bg: #2a2a2a;
     --primary: #3b82f6;
     --danger: #ef4444;
+    --good: #059669;
+    --bad: #f05252;
   }
 }
 
@@ -78,6 +82,7 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="datetime-local"] {
+  font-family: inherit; /* same font as the rest of the app */
   font-size: 18px; /* 16px or more stops iPhones from zooming in on tap */
   padding: 14px;
   border: 1px solid var(--border);
@@ -154,10 +159,307 @@ h1 {
   white-space: nowrap; /* never break "0:52:10" over two lines */
 }
 
-/* Pushes the "History ›" link to the bottom of the home screen */
-.bottom-link {
-  margin-top: auto;
-  align-self: center;
+/* "Stats ›  History ›" side by side at the bottom of the home screen */
+.bottom-links {
+  margin-top: auto; /* push to the bottom */
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+}
+
+/* ‹ 6 – 12 Nov › row on the Stats screen */
+.stats-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-arrow {
+  font-size: 28px;
+  min-width: 48px;
+  min-height: 48px;
+  border: none;
+  background: none;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.nav-arrow:disabled {
+  color: var(--border);
+  cursor: default;
+}
+
+/* The bar chart: scales with the screen width */
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Chart parts use the page colors, so dark mode just works */
+.chart .grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart .bar {
+  fill: var(--primary);
+}
+
+.chart .selected-band {
+  fill: var(--btn-bg);
+}
+
+.chart text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.chart .day-label.selected,
+.chart .value-label {
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.chart .column {
+  cursor: pointer;
+}
+
+.chart .column:focus {
+  outline: none;
+}
+
+/* Keyboard users still see which bar is focused */
+.chart .column:focus-visible .selected-band,
+.chart .column:focus-visible .hit {
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+#stats-day-goal {
+  margin: 0;
+}
+
+/* Goal line in the bar chart */
+.chart .goal-line {
+  stroke: var(--text);
+  stroke-width: 1.5;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Small key under the chart / calendar */
+.chart-legend {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  border-top: 1.5px solid var(--text);
+  opacity: 0.6;
+}
+
+/* Week | Month switch and the goal button in one row */
+.stats-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tabs {
+  display: flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--btn-bg);
+}
+
+.tab {
+  font-size: 16px;
+  padding: 8px 16px;
+  min-height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tab.active {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Goal editor: a small panel with − 2h + and Save */
+.goal-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--btn-bg);
+}
+
+.goal-editor[hidden] {
+  display: none;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.step-btn {
+  width: 52px;
+  height: 52px;
+  font-size: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* "[ 2 ] h [ 30 ] min" between the − and + buttons */
+.goal-fields {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.goal-editor input.goal-input {
+  width: 64px;
+  padding: 8px 4px;
+  font-size: 28px;
+  font-weight: 300;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield; /* hide the tiny up/down arrows (Firefox) */
+}
+
+/* hide the tiny up/down arrows (Chrome, Safari, Brave) - we have − / + instead */
+.goal-input::-webkit-inner-spin-button,
+.goal-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper {
+  gap: 10px;
+}
+
+.goal-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.goal-save {
+  font-size: 18px;
+  padding: 12px 28px;
+}
+
+/* Month calendar: 7 columns, one per weekday */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px 0;
+  text-align: center;
+}
+
+.cal-weekday {
+  font-size: 12px;
+  color: var(--muted);
+  padding-bottom: 4px;
+}
+
+.cal-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 2px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cal-cell.selected {
+  background: var(--btn-bg);
+}
+
+.cal-cell:disabled {
+  cursor: default;
+}
+
+/* The ring: a faint full circle (track) with the progress arc on top */
+.cal-cell svg {
+  width: 40px;
+  height: 40px;
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--ring);
+  stroke-width: 4;
+  opacity: 0.2;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--ring);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ring-date {
+  fill: var(--text);
+  font-size: 13px;
+}
+
+/* Which colour the ring gets, per day type */
+.cal-cell.met     { --ring: var(--good); }
+.cal-cell.missed  { --ring: var(--bad); }
+.cal-cell.today   { --ring: var(--primary); }
+.cal-cell.blank,
+.cal-cell.future  { --ring: var(--border); }
+
+.cal-cell.future .ring-date {
+  fill: var(--muted);
+}
+
+.cal-cell.today .ring-date {
+  font-weight: 700;
+}
+
+/* Small tick under days where the goal was reached */
+.cal-check {
+  height: 14px;
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--good);
+  font-weight: 700;
+}
+
+/* Title + total of the tapped day, under the chart */
+.stats-day {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 18px;
+  margin-top: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
 /* One tappable block per day on the History screen */
