@@ -841,9 +841,9 @@ body.nav-visible .screen {
   margin: auto 0 0; /* auto top margin pushes it to the bottom */
   padding-top: 24px;
   text-align: center;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--muted);
 }
 
