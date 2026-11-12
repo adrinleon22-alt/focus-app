@@ -159,10 +159,17 @@
   <!-- Screen 5: One day's sessions, one by one -->
   <main id="day-screen" class="screen" hidden>
     <button id="day-back" class="icon-btn back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 18.3a1 1 0 0 1-1.4 0l-5.6-5.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 1 1 1.4 1.4L6.8 11H19a1 1 0 0 1 0 2H6.8l3.9 3.9a1 1 0 0 1 0 1.4z"/></svg></button>
-    <h1 id="day-title"></h1>
-    <p id="day-total" class="today-total">0:00:00</p>
-    <!-- One row per session gets added here by app.js -->
-    <ul id="day-list" class="task-list"></ul>
+    <!-- Date + total on the left, "+ Add" on the right -->
+    <div class="screen-header">
+      <div>
+        <h1 id="day-title"></h1>
+        <p id="day-total" class="day-total-line">0:00:00</p>
+      </div>
+      <button id="day-add" class="big-btn primary add-btn" type="button">+ Add</button>
+    </div>
+    <p class="muted small">Tap a block to edit it, or tap an empty spot to add what you did then.</p>
+    <!-- Calendar-style timeline of the day (00:00–24:00), drawn by app.js -->
+    <div id="day-timeline" class="timeline"></div>
   </main>
 
   <!-- Screen 3: Today. Total plus time per task. -->
@@ -178,7 +185,7 @@
   <!-- Screen 6: Edit one saved session -->
   <main id="edit-screen" class="screen" hidden>
     <button id="edit-cancel" class="link-btn" type="button">‹ Cancel</button>
-    <h1>Edit session</h1>
+    <h1 id="edit-title">Edit session</h1>
 
     <label for="edit-task">Task</label>
     <input id="edit-task" type="text" autocomplete="off">

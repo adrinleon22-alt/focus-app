@@ -842,6 +842,125 @@ body.nav-visible .screen {
   color: var(--muted);
 }
 
+/* ---- Day screen: calendar-style timeline ---- */
+.day-total-line {
+  margin: 2px 0 0;
+  font-size: 18px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.add-btn {
+  font-size: 16px;
+  padding: 10px 18px;
+  flex: none;
+}
+
+/* The scrollable day. --hour = height of one hour (5 minutes = 1/12 of it). */
+.timeline {
+  --hour: 96px;
+  position: relative;
+  height: 60vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The full 24-hour sheet inside the scroll box */
+.timeline-sheet {
+  position: relative;
+  height: calc(24 * var(--hour));
+  margin-left: 52px; /* room for the hour labels */
+  cursor: copy; /* hints you can tap to add */
+}
+
+/* Hour labels and lines */
+.tl-hour {
+  position: absolute;
+  left: -52px;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--border);
+}
+
+.tl-hour span {
+  position: absolute;
+  top: -8px;
+  left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg);
+  padding-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Faint line at every half hour */
+.tl-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--border);
+  opacity: 0.6;
+}
+
+/* A session block */
+.tl-block {
+  --grow: 1.02;
+  position: absolute;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  border: none;
+  border-left: 4px solid var(--chart);
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tl-block .tl-task {
+  font-weight: 600;
+}
+
+.tl-block .tl-time,
+.tl-block .tl-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tl-block .tl-note {
+  font-style: italic;
+}
+
+/* Red line at the current time (only on today) */
+.tl-now {
+  position: absolute;
+  left: -6px;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--bad);
+  pointer-events: none;
+}
+
+.tl-now::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+
 /* Top row of a screen: title on the left, icon on the right */
 .screen-header {
   display: flex;

@@ -343,7 +343,7 @@ const historyEmpty = document.getElementById("history-empty");
 const historyList = document.getElementById("history-list");
 const dayTitle = document.getElementById("day-title");
 const dayTotal = document.getElementById("day-total");
-const dayList = document.getElementById("day-list");
+const dayTimeline = document.getElementById("day-timeline");
 
 // All screens that are not the timer, by name.
 const screens = {
@@ -402,6 +402,8 @@ function goBack(steps = 1) {
 
 // Show a screen without touching the browser history.
 function showView(view) {
+  // Opening a day fresh (not coming back from editing): scroll it again
+  if (view === "day" && currentView !== "day" && currentView !== "edit") lastScrolledDay = null;
   currentView = view;
   window.scrollTo(0, 0);
   render();
@@ -524,47 +526,133 @@ function buildDayCard(day) {
   return card;
 }
 
-// Fill the day screen: the day's total, then every session in time order.
+// ---- Day screen: a calendar-style timeline from 00:00 to 24:00 ----
+const HOUR_PX = 96; // height of one hour on screen (5 minutes = 8px)
+const MIN_BLOCK_PX = 24; // very short sessions still get a tappable block
+let lastScrolledDay = null; // so we only auto-scroll when a new day is opened
+
+// Minutes since midnight of the given day, e.g. 14:30 -> 870.
+// Can be above 1440 for a session that runs past midnight.
+function minutesIntoDay(iso, dayKey) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return (Date.parse(iso) - new Date(y, m - 1, d).getTime()) / 60000;
+}
+
+// Give overlapping sessions side-by-side columns (like a calendar does).
+// Returns [{ session, top, bottom, col, cols }].
+function layoutBlocks(daySessions, dayKey) {
+  const items = daySessions
+    .map((s) => ({
+      session: s,
+      top: Math.max(0, minutesIntoDay(s.start, dayKey)),
+      bottom: Math.min(1440, minutesIntoDay(s.end, dayKey)),
+    }))
+    .sort((a, b) => a.top - b.top);
+
+  // Walk through in time order; a "group" is a run of blocks that overlap.
+  let group = [];
+  let groupEnd = -1;
+  const finishGroup = () => {
+    const cols = Math.max(...group.map((it) => it.col)) + 1;
+    for (const it of group) it.cols = cols;
+  };
+  for (const it of items) {
+    if (it.top >= groupEnd && group.length) { finishGroup(); group = []; }
+    // First column whose last block has already ended
+    const used = group.filter((g) => g.bottom > it.top).map((g) => g.col);
+    let col = 0;
+    while (used.includes(col)) col++;
+    it.col = col;
+    group.push(it);
+    groupEnd = Math.max(groupEnd, it.bottom);
+  }
+  if (group.length) finishGroup();
+  return items;
+}
+
+// Fill the day screen: title, total, and the timeline with one block per session.
 function renderDay(dayKey, daySessions) {
   dayTitle.textContent = formatDayKey(dayKey);
-  dayTotal.textContent = formatDuration(sumDurations(daySessions));
-  dayList.innerHTML = ""; // remove the old rows
+  dayTotal.textContent = formatDuration(sumDurations(daySessions)) + " focused";
 
-  daySessions.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-  for (const s of daySessions) {
-    const li = document.createElement("li");
-    // The whole row is a button: tap it to edit this session.
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = "session-row";
-    row.addEventListener("click", () => openEdit(s.id));
+  const sheet = document.createElement("div");
+  sheet.className = "timeline-sheet";
+  dayTimeline.style.setProperty("--hour", HOUR_PX + "px");
 
-    // Left side: "14:00–14:45" on top, task below, paused time if any
-    const info = document.createElement("span");
-    info.className = "session-info";
-    const clock = document.createElement("span");
-    clock.textContent = formatClock(s.start) + "–" + formatClock(s.end);
-    info.append(clock, taskLabel(s.task, s.subject));
+  // Hour lines with labels, and a faint line every half hour
+  for (let h = 0; h < 24; h++) {
+    const line = document.createElement("div");
+    line.className = "tl-hour";
+    line.style.top = h * HOUR_PX + "px";
+    const label = document.createElement("span");
+    label.textContent = String(h).padStart(2, "0") + ":00";
+    line.appendChild(label);
+    const half = document.createElement("div");
+    half.className = "tl-half";
+    half.style.top = (h + 0.5) * HOUR_PX + "px";
+    sheet.append(line, half);
+  }
+
+  // One block per session, placed by its start and end time
+  for (const it of layoutBlocks(daySessions, dayKey)) {
+    const s = it.session;
+    const block = document.createElement("button");
+    block.type = "button";
+    block.className = "tl-block";
+    const topPx = (it.top / 60) * HOUR_PX;
+    const heightPx = Math.max(MIN_BLOCK_PX, ((it.bottom - it.top) / 60) * HOUR_PX - 2);
+    block.style.top = topPx + "px";
+    block.style.height = heightPx + "px";
+    block.style.left = "calc(" + (it.col / it.cols) * 100 + "% + 4px)";
+    block.style.width = "calc(" + 100 / it.cols + "% - 8px)";
+
+    const task = document.createElement("span");
+    task.className = "tl-task";
+    task.textContent = s.task; // textContent: always plain text
+    const time = document.createElement("span");
+    time.className = "tl-time";
+    time.textContent = formatClock(s.start) + "–" + formatClock(s.end) + " · " + formatDuration(sessionDuration(s));
+    block.append(task, time);
     if (s.note) {
       const note = document.createElement("span");
-      note.className = "session-note";
-      note.textContent = s.note; // what you got done in this session
-      info.appendChild(note);
+      note.className = "tl-note";
+      note.textContent = s.note;
+      block.appendChild(note);
     }
-    if (s.pausedMs >= 1000) {
-      const paused = document.createElement("span");
-      paused.className = "muted small";
-      paused.textContent = "paused " + formatDuration(s.pausedMs);
-      info.appendChild(paused);
-    }
+    block.setAttribute("aria-label", s.task + ", " + time.textContent + (s.note ? ", " + s.note : ""));
+    block.addEventListener("click", (event) => {
+      event.stopPropagation(); // don't also count as a tap on empty space
+      openEdit(s.id);
+    });
+    sheet.appendChild(block);
+  }
 
-    const time = document.createElement("span");
-    time.className = "time";
-    time.textContent = formatDuration(sessionDuration(s));
+  // Red "now" line on today
+  const isToday = dayKey === localDayKey(new Date());
+  if (isToday) {
+    const now = document.createElement("div");
+    now.className = "tl-now";
+    now.style.top = (minutesIntoDay(new Date().toISOString(), dayKey) / 60) * HOUR_PX + "px";
+    sheet.appendChild(now);
+  }
 
-    row.append(info, time);
-    li.appendChild(row);
-    dayList.appendChild(li);
+  // Tap on empty space: add a session starting there (rounded to 5 minutes)
+  sheet.addEventListener("click", (event) => {
+    const y = event.clientY - sheet.getBoundingClientRect().top;
+    const minutes = Math.min(1435, Math.max(0, Math.floor((y / HOUR_PX) * 12) * 5));
+    openNewSession(dayKey, minutes);
+  });
+
+  dayTimeline.innerHTML = ""; // remove the old timeline
+  dayTimeline.appendChild(sheet);
+
+  // When a day is opened: scroll to its first session (or 08:00 / now)
+  if (lastScrolledDay !== dayKey) {
+    lastScrolledDay = dayKey;
+    const first = daySessions.length
+      ? Math.min(...daySessions.map((s) => minutesIntoDay(s.start, dayKey)))
+      : isToday ? minutesIntoDay(new Date().toISOString(), dayKey) - 60 : 8 * 60;
+    dayTimeline.scrollTop = Math.max(0, (first / 60) * HOUR_PX - 24);
   }
 }
 
@@ -582,6 +670,8 @@ const editError = document.getElementById("edit-error");
 
 // The session being edited, exactly as it was when the form opened.
 let editingOriginal = null;
+const editTitle = document.getElementById("edit-title");
+const editDeleteBtn = document.getElementById("edit-delete");
 
 // ISO time -> "2026-11-12T14:05", the local format datetime-local inputs use.
 function toLocalInputValue(iso) {
@@ -595,7 +685,47 @@ function toLocalInputValue(iso) {
 function openEdit(id) {
   const s = loadData().sessions.find((x) => x.id === id);
   if (!s) return;
+  showEditForm(s, false);
+}
+
+// Add a session by hand (from the day timeline), e.g. something you forgot to time.
+// startMinutes = minutes after midnight on that day; it lasts 30 minutes to begin with.
+function openNewSession(dayKey, startMinutes) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const start = new Date(y, m - 1, d, 0, startMinutes);
+  const end = new Date(start.getTime() + 30 * 60000);
+  showEditForm({
+    id: makeId(),
+    task: "",
+    subject: "",
+    start: start.toISOString(),
+    end: end.toISOString(),
+    pausedMs: 0,
+    note: "",
+  }, true);
+}
+
+// "+ Add" button: today = the last half hour; other days = 09:00.
+function addSessionButton() {
+  const today = localDayKey(new Date());
+  if (selectedDay === today) {
+    const now = new Date();
+    const minutes = Math.floor((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+    openNewSession(today, Math.max(0, minutes - 30));
+  } else {
+    openNewSession(selectedDay, 9 * 60);
+  }
+}
+
+// true while adding a brand-new session (no Delete button, Save adds it).
+let editingIsNew = false;
+
+// Fill the edit form with a session's values and open it.
+function showEditForm(s, isNew) {
   editingOriginal = s;
+  editingIsNew = isNew;
+  editTitle.textContent = isNew ? "Add session" : "Edit session";
+  editDeleteBtn.hidden = isNew;
   editTask.value = s.task;
   editNote.value = s.note || "";
   editStart.value = toLocalInputValue(s.start);
@@ -604,6 +734,7 @@ function openEdit(id) {
   editError.hidden = true;
   updateEditDuration();
   openView("edit");
+  if (isNew) editTask.focus(); // ready to type what you did
 }
 
 // Read the form and turn it into session values.
@@ -659,8 +790,13 @@ function saveEdit() {
   }
   const data = loadData();
   const index = data.sessions.findIndex((x) => x.id === updated.id);
-  if (index === -1) return; // session no longer exists
-  data.sessions[index] = updated;
+  if (editingIsNew) {
+    data.sessions.push(updated); // a new session added by hand
+  } else if (index === -1) {
+    return; // session no longer exists
+  } else {
+    data.sessions[index] = updated;
+  }
   saveData(data);
   // Go to the session's day (a new day if the start date was changed).
   selectedDay = localDayKey(new Date(updated.start));
@@ -672,9 +808,8 @@ function deleteEdit() {
   const data = loadData();
   data.sessions = data.sessions.filter((x) => x.id !== editingOriginal.id);
   saveData(data);
-  // Back to the day; if that day is now empty, back to History instead.
-  const left = sessionsOnDay(data.sessions, selectedDay);
-  goBack(left.length > 0 ? 1 : 2); // 2 steps = skip the now-empty day, land on History
+  // Back to the day's timeline (even if it's empty now: you can add new ones there).
+  goBack();
 }
 
 // =====================================================================
@@ -1298,6 +1433,7 @@ document.getElementById("history-back").addEventListener("click", () => goBack()
 document.getElementById("day-back").addEventListener("click", () => goBack());
 document.getElementById("edit-cancel").addEventListener("click", () => goBack());
 document.getElementById("edit-save").addEventListener("click", saveEdit);
+document.getElementById("day-add").addEventListener("click", addSessionButton);
 document.getElementById("edit-delete").addEventListener("click", deleteEdit);
 // Update the duration preview whenever any edit field changes.
 for (const input of [editStart, editEnd, editPaused]) {
