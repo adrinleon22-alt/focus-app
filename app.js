@@ -698,3 +698,11 @@ setInterval(updateTimerDisplay, 250);
 document.addEventListener("visibilitychange", render);
 
 render(); // draw the correct screen on page load (resumes a running session)
+
+// Turn on offline support (see sw.js). Browsers only allow this on
+// https:// or on localhost, so over plain http on Wi-Fi it's skipped.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch((error) => {
+    console.log("Offline support not available here:", error);
+  });
+}
