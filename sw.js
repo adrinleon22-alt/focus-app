@@ -4,7 +4,7 @@
 
 // Name of our storage box for files. Change it when the LIST of files
 // below changes (e.g. a new file is added), so old copies get cleaned up.
-const CACHE_NAME = "telos-files-v5"; // v5: renamed to Telos, Greek letters
+const CACHE_NAME = "telos-files-v6"; // v6: new app icon, opening screen
 
 // Everything the app needs to start.
 const APP_FILES = [
@@ -16,6 +16,8 @@ const APP_FILES = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/favicon-32.png",
   "./fonts/inter-latin.woff2",
   "./fonts/inter-latin-ext.woff2",
   "./fonts/manrope-extrabold-latin.woff2",

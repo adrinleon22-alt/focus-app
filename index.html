@@ -16,17 +16,24 @@
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <!-- iPhone: home-screen icon, full screen, and the name under the icon -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <!-- Small icon in the browser tab -->
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Telos">
 </head>
 <body>
+  <!-- Opening screen: the icon, then "τέλος" types in, is erased, "Telos" types in,
+       and everything zooms out into the app. Tap anywhere to skip. (app.js: "Opening screen") -->
+  <div id="splash" class="splash" aria-hidden="true">
+    <img class="splash-icon" src="icons/icon-512.png" alt="">
+    <p class="splash-name"><span class="tw-text"></span><span class="tw-caret"></span></p>
+    <p class="splash-skip">Tap to skip</p>
+  </div>
   <!-- Screen 1: Home. Type a task and start. -->
   <main id="home-screen" class="screen">
-    <!-- App name. When the app opens, app.js types "τέλος" (Greek), erases it,
-         then types "Telos", which stays. aria-label keeps it readable for screen readers. -->
-    <h1 id="app-title" class="app-title" aria-label="Telos"><span class="tw-text">Telos</span><span class="tw-caret" aria-hidden="true"></span></h1>
+    <h1 class="app-title">Telos</h1>
 
     <!-- Today's total with a ring showing progress towards the daily goal.
          Tapping it opens the Today screen. The ring is drawn by app.js. -->

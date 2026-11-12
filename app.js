@@ -2024,43 +2024,76 @@ document.addEventListener("visibilitychange", () => {
   render();
 });
 
-// ---- Opening animation of the app name ----
-// Types "τέλος" (Greek: the goal, the end you work towards), erases it
-// letter by letter, then types "Telos", which stays. Runs once per app start.
-const appTitle = document.getElementById("app-title");
-const appTitleText = appTitle.querySelector(".tw-text");
+// ---- Opening screen ----
+// The icon pops in, "τέλος" (Greek: the goal you work towards) types in,
+// is erased letter by letter, "Telos" types in, and then the whole screen
+// zooms out into the app. Tap anywhere to skip. Runs once per app start.
+const splash = document.getElementById("splash");
+const splashText = splash.querySelector(".tw-text");
+const splashName = splash.querySelector(".splash-name");
+const themeColorMetas = document.querySelectorAll('meta[name="theme-color"]');
+let splashDone = false;
 
-function playTitleIntro() {
+// Zoom out into the app and remove the opening screen.
+function finishSplash() {
+  if (splashDone) return;
+  splashDone = true;
+  splashName.classList.remove("typing");
+  splashText.textContent = "Telos";
+  splash.classList.add("leaving");
+  document.body.classList.add("app-entering");
+  // Status bar back to the app's normal colours
+  themeColorMetas.forEach((meta) => meta.setAttribute("content", meta.dataset.normal));
+  setTimeout(() => {
+    splash.remove();
+    document.body.classList.remove("app-entering");
+  }, 750);
+}
+
+function playSplash() {
+  // While the dark opening screen shows, make the phone's status bar dark too
+  themeColorMetas.forEach((meta) => {
+    meta.dataset.normal = meta.getAttribute("content");
+    meta.setAttribute("content", "#0B0B0C");
+  });
+  splash.addEventListener("click", finishSplash); // tap to skip
+
   const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (calm) return; // "reduce motion": just show "Telos"
+  if (calm) {
+    // "Reduce motion": just show the icon and the name briefly
+    splashText.textContent = "Telos";
+    setTimeout(finishSplash, 900);
+    return;
+  }
+
+  // Each wait ends early when the splash was skipped
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const typeWord = async (word, msPerLetter) => {
     for (const letter of word) {
-      appTitleText.textContent += letter;
+      if (splashDone) return;
+      splashText.textContent += letter;
       await wait(msPerLetter);
     }
   };
   const eraseWord = async (msPerLetter) => {
-    while (appTitleText.textContent.length) {
-      appTitleText.textContent = appTitleText.textContent.slice(0, -1); // backspace
+    while (splashText.textContent.length && !splashDone) {
+      splashText.textContent = splashText.textContent.slice(0, -1); // backspace
       await wait(msPerLetter);
     }
   };
   (async () => {
-    appTitle.classList.add("typing");
-    appTitleText.textContent = "";
-    await wait(400);
+    splashName.classList.add("typing");
+    await wait(700); // let the icon pop in first
     await typeWord("τέλος", 140);
-    await wait(900); // let it sink in
+    if (!splashDone) await wait(900); // let it sink in
     await eraseWord(80);
-    await wait(300);
+    if (!splashDone) await wait(300);
     await typeWord("Telos", 140);
-    await wait(1200); // cursor blinks a moment
-    appTitle.classList.remove("typing");
-    appTitle.classList.add("typed"); // cursor fades away, "Telos" stays
+    if (!splashDone) await wait(900); // "Telos" stays a moment
+    finishSplash();
   })();
 }
-playTitleIntro();
+playSplash();
 
 // ---- "Focus. Flow. Finish." wave ----
 // Split the tagline into one <span> per letter, numbered 0, 1, 2, ...
