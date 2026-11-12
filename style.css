@@ -518,8 +518,8 @@ h1 {
   cursor: pointer;
 }
 
-/* Backup section at the bottom of History, set apart by a line */
-.backup {
+/* Sections further down the Stats screen (Recent days, Backup), set apart by a line */
+.section {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -528,9 +528,19 @@ h1 {
   border-top: 1px solid var(--border);
 }
 
-.backup h2 {
+.section h2 {
   margin: 0;
   font-size: 18px;
+}
+
+/* Day cards already have their own spacing below them */
+#recent-days .day-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Hidden link buttons must really disappear (.link-btn sets no display, but be safe) */
+.link-btn[hidden] {
+  display: none;
 }
 
 .error {

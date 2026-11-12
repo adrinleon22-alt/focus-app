@@ -48,8 +48,7 @@
 
     <!-- Small links at the very bottom, out of the way of Start -->
     <div class="bottom-links">
-      <button id="stats-link" class="link-btn" type="button">Stats ›</button>
-      <button id="history-link" class="link-btn" type="button">History ›</button>
+      <button id="stats-link" class="link-btn" type="button">Stats &amp; history ›</button>
     </div>
   </main>
 
@@ -115,18 +114,17 @@
     <p id="stats-day-goal" class="muted small"></p>
     <p id="stats-day-empty" class="muted" hidden>Nothing tracked on this day.</p>
     <ul id="stats-day-list" class="task-list"></ul>
-  </main>
 
-  <!-- Screen 4: History. All days, newest first. -->
-  <main id="history-screen" class="screen" hidden>
-    <button id="history-back" class="link-btn" type="button">‹ Back</button>
-    <h1>History</h1>
-    <p id="history-empty" class="muted" hidden>No sessions yet.</p>
-    <!-- One block per day gets added here by app.js -->
-    <div id="history-list"></div>
+    <!-- Recent days: the last few days you studied. Tap one to see/edit its sessions. -->
+    <section class="section">
+      <h2>Recent days</h2>
+      <p id="recent-empty" class="muted" hidden>No sessions yet.</p>
+      <div id="recent-days"></div>
+      <button id="all-days-btn" class="link-btn" type="button">Show all days ›</button>
+    </section>
 
     <!-- Backup: save all data to a file, or load it back from one -->
-    <section class="backup">
+    <section class="section backup">
       <h2>Backup</h2>
       <button id="export-btn" class="big-btn" type="button">Export backup</button>
       <button id="import-btn" class="big-btn" type="button">Import backup</button>
@@ -134,6 +132,15 @@
       <input id="import-file" type="file" accept=".json,application/json" hidden>
       <p id="backup-message" class="muted" hidden></p>
     </section>
+  </main>
+
+  <!-- Screen 4: All days (full history), newest first. -->
+  <main id="history-screen" class="screen" hidden>
+    <button id="history-back" class="link-btn" type="button">‹ Back</button>
+    <h1>All days</h1>
+    <p id="history-empty" class="muted" hidden>No sessions yet.</p>
+    <!-- One block per day gets added here by app.js -->
+    <div id="history-list"></div>
   </main>
 
   <!-- Screen 5: One day's sessions, one by one -->

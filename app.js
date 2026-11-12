@@ -401,45 +401,49 @@ function renderTaskTotals(listElement, sessions) {
   }
 }
 
-// Fill the History screen: one tappable card per day, newest first.
+// Fill the "All days" screen: one tappable card per day, newest first.
 function renderHistory(sessions) {
   const days = groupByDay(sessions);
   historyEmpty.hidden = days.length > 0;
   historyList.innerHTML = ""; // remove the old cards
+  for (const day of days) historyList.appendChild(buildDayCard(day));
+}
 
-  for (const day of days) {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "day-card";
+// One day as a tappable card: date + total, then time per task.
+// Tapping it opens that day's sessions (where you can edit them).
+// Used on the Stats screen (recent days) and the All days screen.
+function buildDayCard(day) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "day-card";
 
-    // Header line: date on the left, day total on the right
-    const header = document.createElement("span");
-    header.className = "day-card-header";
-    const date = document.createElement("span");
-    date.textContent = formatDayKey(day.dayKey);
-    const total = document.createElement("span");
-    total.className = "time";
-    total.textContent = formatDuration(sumDurations(day.sessions));
-    header.append(date, total);
-    card.appendChild(header);
+  // Header line: date on the left, day total on the right
+  const header = document.createElement("span");
+  header.className = "day-card-header";
+  const date = document.createElement("span");
+  date.textContent = formatDayKey(day.dayKey);
+  const total = document.createElement("span");
+  total.className = "time";
+  total.textContent = formatDuration(sumDurations(day.sessions));
+  header.append(date, total);
+  card.appendChild(header);
 
-    // One small row per task
-    for (const item of totalsByTask(day.sessions)) {
-      const row = document.createElement("span");
-      row.className = "day-card-row";
-      const time = document.createElement("span");
-      time.className = "time";
-      time.textContent = formatDuration(item.ms);
-      row.append(taskLabel(item.task, item.subject), time);
-      card.appendChild(row);
-    }
-
-    card.addEventListener("click", () => {
-      selectedDay = day.dayKey;
-      openView("day");
-    });
-    historyList.appendChild(card);
+  // One small row per task
+  for (const item of totalsByTask(day.sessions)) {
+    const row = document.createElement("span");
+    row.className = "day-card-row";
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = formatDuration(item.ms);
+    row.append(taskLabel(item.task, item.subject), time);
+    card.appendChild(row);
   }
+
+  card.addEventListener("click", () => {
+    selectedDay = day.dayKey;
+    openView("day");
+  });
+  return card;
 }
 
 // Fill the day screen: the day's total, then every session in time order.
@@ -601,6 +605,9 @@ const statsDayEmpty = document.getElementById("stats-day-empty");
 const statsDayList = document.getElementById("stats-day-list");
 
 const statsDayGoal = document.getElementById("stats-day-goal");
+const recentDays = document.getElementById("recent-days");
+const recentEmpty = document.getElementById("recent-empty");
+const allDaysBtn = document.getElementById("all-days-btn");
 const statsCalendar = document.getElementById("stats-calendar");
 const goalBtn = document.getElementById("goal-btn");
 const tabWeek = document.getElementById("tab-week");
@@ -672,6 +679,7 @@ function openStats() {
   statsMonth = today.slice(0, 7); // "2026-11-12" -> "2026-11"
   statsSelectedDay = today;
   goalEditor.hidden = true; // start with the goal editor closed
+  showBackupMessage(""); // don't show an old backup message
   openView("stats");
 }
 
@@ -814,6 +822,14 @@ function renderStats(data) {
   statsDayGoal.textContent = goalText(selected);
   statsDayEmpty.hidden = daySessions.length > 0;
   renderTaskTotals(statsDayList, daySessions);
+
+  // Recent days: the last few days with sessions; the rest is behind "Show all days".
+  const RECENT_COUNT = 5;
+  const allDays = groupByDay(sessions);
+  recentDays.innerHTML = ""; // remove the old cards
+  for (const day of allDays.slice(0, RECENT_COUNT)) recentDays.appendChild(buildDayCard(day));
+  recentEmpty.hidden = allDays.length > 0;
+  allDaysBtn.hidden = allDays.length <= RECENT_COUNT; // nothing more to show
 }
 
 // One line about the goal, e.g. "Goal 2h · reached ✓" or "Goal 2h · 0:30:00 to go"
@@ -1137,11 +1153,8 @@ pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
 document.getElementById("today-link").addEventListener("click", () => openView("today"));
 document.getElementById("today-back").addEventListener("click", () => goBack());
-document.getElementById("history-link").addEventListener("click", () => {
-  showBackupMessage(""); // don't show an old backup message
-  openView("history");
-});
 document.getElementById("stats-link").addEventListener("click", openStats);
+allDaysBtn.addEventListener("click", () => openView("history"));
 document.getElementById("stats-back").addEventListener("click", () => goBack());
 document.getElementById("stats-prev").addEventListener("click", () => moveStats(-1));
 statsNext.addEventListener("click", () => moveStats(1));
