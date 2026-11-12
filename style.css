@@ -1077,11 +1077,13 @@ body.on-break .big-btn:not(.danger) {
   animation-delay: calc(var(--i) * 35ms); /* --i = letter number: 0, 1, 2, ... */
 }
 
-/* Each letter zooms in (grows), dips slightly smaller, then settles back */
+/* Each letter zooms in (grows), dips slightly smaller, then settles back.
+   While zoomed it lights up to full-strength text colour so it stands out:
+   white in dark mode, black in light mode (white on white would vanish). */
 @keyframes wave {
-  0%, 100% { transform: scale(1); }
-  35% { transform: scale(1.4); }
-  65% { transform: scale(0.92); }
+  0%, 100% { transform: scale(1); color: var(--muted); }
+  35% { transform: scale(1.4); color: var(--text); }
+  65% { transform: scale(0.92); color: var(--muted); }
 }
 
 /* People who turned on "reduce motion" on their phone get no wave */
