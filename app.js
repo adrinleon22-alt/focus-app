@@ -19,6 +19,8 @@ function loadData() {
   }
   // Remembered choices: Stopwatch or Timer, and the last study time used.
   data.settings = Object.assign({ mode: "stopwatch", timerMinutes: 120 }, data.settings);
+  // Checklist being prepared on the home screen for the next session.
+  data.draft = Object.assign({ checklist: [] }, data.draft);
   return data;
 }
 
@@ -204,6 +206,8 @@ function allowScreenOff() {
 // The timer finished all its blocks: show the summary and the note box.
 function finishTimer(data) {
   const t = data.activeSession;
+  const lastBlock = data.sessions.find((x) => x.id === t.savedIds[t.savedIds.length - 1]);
+  if (lastBlock) lastBlock.checklist = cleanChecklist(t.checklist);
   data.activeSession = null;
   saveData(data);
   allowScreenOff();
@@ -296,8 +300,13 @@ function startSession() {
   } else {
     data.activeSession = { task: task, start: now, pausedMs: 0, pausedAt: null };
   }
+  // The checklist you set up comes along with this session
+  data.activeSession.checklist = cleanChecklist(data.draft.checklist);
+  data.draft.checklist = [];
+  draftOpen = false;
   saveData(data); // save immediately so a refresh loses nothing
   taskInput.value = "";
+  updateBulb();
   closeNoteCard(); // hide the last "Saved / what did you get done?" card
   render();
 }
@@ -351,6 +360,7 @@ function stopSession(at = Date.now()) {
     end: new Date(now).toISOString(),
     pausedMs: pausedMs,
     note: "",
+    checklist: cleanChecklist(session.checklist),
   };
 
   data.sessions.push(finished);
@@ -398,6 +408,133 @@ function stopTimerEarly(data, at = Date.now()) {
   finishTimer(data);
 }
 
+// =====================================================================
+// CHECKLISTS
+// A checklist is a list like [{ text: "Exercise 1", done: false }, ...].
+// You set it up before a session (light bulb on the home screen) and tick
+// it off when the session ends. It's saved with the session.
+// =====================================================================
+
+// Remove empty items and stray spaces before saving for good.
+function cleanChecklist(items) {
+  return (items || [])
+    .map((item) => ({ text: String(item.text || "").trim(), done: !!item.done }))
+    .filter((item) => item.text);
+}
+
+// Draw an editable checklist into a container.
+//   items     - the array to show and change (changed in place)
+//   checkable - true = show tick boxes (after a session), false = just the list
+//   onChange  - called after every change, so the caller can save it
+// Returns the "+ Add item" input box (handy to put the cursor in it).
+function renderChecklist(container, items, checkable, onChange) {
+  container.innerHTML = ""; // remove the old rows
+  const list = document.createElement("ul");
+  list.className = "checklist";
+
+  items.forEach((item, i) => {
+    const li = document.createElement("li");
+    li.classList.toggle("done", checkable && item.done);
+    if (checkable) {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = item.done;
+      box.setAttribute("aria-label", "Done: " + item.text);
+      box.addEventListener("change", () => {
+        item.done = box.checked;
+        li.classList.toggle("done", item.done);
+        onChange();
+      });
+      li.appendChild(box);
+    }
+    const text = document.createElement("input");
+    text.type = "text";
+    text.className = "check-text";
+    text.value = item.text;
+    text.setAttribute("aria-label", "Checklist item");
+    // Typing changes the item right away (no redraw, so the cursor stays put)
+    text.addEventListener("input", () => { item.text = text.value; onChange(); });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "check-remove";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", "Remove item");
+    remove.addEventListener("click", () => {
+      items.splice(i, 1);
+      onChange();
+      renderChecklist(container, items, checkable, onChange);
+    });
+    li.append(text, remove);
+    list.appendChild(li);
+  });
+
+  // Last row: type a new item, then Enter or "+"
+  const addLi = document.createElement("li");
+  addLi.className = "add-row";
+  const addInput = document.createElement("input");
+  addInput.type = "text";
+  addInput.className = "check-text";
+  addInput.placeholder = "+ Add item";
+  addInput.setAttribute("aria-label", "Add checklist item");
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "check-add";
+  addBtn.textContent = "+";
+  addBtn.setAttribute("aria-label", "Add item");
+  const add = () => {
+    const text = addInput.value.trim();
+    if (!text) return;
+    items.push({ text: text, done: false });
+    onChange();
+    renderChecklist(container, items, checkable, onChange).focus(); // ready for the next one
+  };
+  addInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); add(); }
+  });
+  addBtn.addEventListener("click", add);
+  addLi.append(addInput, addBtn);
+  list.appendChild(addLi);
+
+  container.appendChild(list);
+  return addInput;
+}
+
+// ---- Home screen: the light bulb and the checklist for the next session ----
+let draftOpen = false; // is the checklist panel open?
+
+// Show the bulb once there's a title (or a checklist already); yellow when on.
+function updateBulb() {
+  const draft = loadData().draft.checklist;
+  const hasTitle = taskInput.value.trim() !== "";
+  const on = draftOpen || draft.length > 0;
+  bulbBtn.hidden = !hasTitle && draft.length === 0;
+  bulbBtn.classList.toggle("on", on);
+  bulbBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  bulbHint.hidden = bulbBtn.hidden || on; // the question disappears once you use it
+  draftPanel.hidden = !draftOpen;
+}
+
+function drawDraftChecklist() {
+  const data = loadData();
+  const items = data.draft.checklist;
+  return renderChecklist(draftItemsBox, items, false, () => {
+    const fresh = loadData();
+    fresh.draft.checklist = items; // save while typing, so a reload loses nothing
+    saveData(fresh);
+    updateBulb();
+  });
+}
+
+// Tap the bulb: open (or close) the checklist panel.
+function toggleDraftChecklist() {
+  draftOpen = !draftOpen;
+  updateBulb();
+  if (draftOpen) {
+    const addInput = drawDraftChecklist();
+    if (loadData().draft.checklist.length === 0) addInput.focus();
+  }
+}
+
 // ---- Stick figure on the timer screen (the moves themselves are CSS) ----
 const SALUTE_MS = 1800; // must match the 1.8s salute animation in style.css
 let saluting = false;
@@ -441,6 +578,22 @@ function openNoteCard(sessionId, savedText) {
   noteInput.value = "";
   noteForm.hidden = false;
   noteCard.hidden = false;
+
+  // If the session had a checklist: show it with tick boxes.
+  const session = loadData().sessions.find((x) => x.id === sessionId);
+  const items = session && session.checklist ? session.checklist : [];
+  doneChecklist.hidden = items.length === 0;
+  if (items.length) {
+    renderChecklist(doneChecklistItems, items, true, () => {
+      // Every tick or edit is saved straight into that session
+      const data = loadData();
+      const saved = data.sessions.find((x) => x.id === sessionId);
+      if (saved) {
+        saved.checklist = items.map((i) => ({ text: i.text, done: i.done }));
+        saveData(data);
+      }
+    });
+  }
 }
 
 function closeNoteCard() {
@@ -630,6 +783,13 @@ const pauseBtn = document.getElementById("pause-btn");
 const recentTasksBox = document.getElementById("recent-tasks");
 const timerPhase = document.getElementById("timer-phase");
 const buddy = document.getElementById("buddy");
+const bulbBtn = document.getElementById("bulb-btn");
+const bulbHint = document.getElementById("bulb-hint");
+const draftPanel = document.getElementById("draft-checklist");
+const draftItemsBox = document.getElementById("draft-checklist-items");
+const doneChecklist = document.getElementById("done-checklist");
+const doneChecklistItems = document.getElementById("done-checklist-items");
+const editChecklistItems = document.getElementById("edit-checklist-items");
 const stopBtn = document.getElementById("stop-btn");
 const dial = document.getElementById("dial");
 const dialSvg = document.getElementById("dial-svg");
@@ -755,6 +915,7 @@ function render() {
       drawRing(homeRing, todayMs / (goal * 60000));
       renderRecentTasks(data.sessions);
       renderModeChoice(data);
+      updateBulb();
     } else if (currentView === "today") {
       renderToday(today);
     } else if (currentView === "history") {
@@ -942,6 +1103,12 @@ function renderDay(dayKey, daySessions) {
     time.className = "tl-time";
     time.textContent = formatClock(s.start) + "–" + formatClock(s.end) + " · " + formatDuration(sessionDuration(s));
     block.append(task, time);
+    if (s.checklist && s.checklist.length) {
+      const check = document.createElement("span");
+      check.className = "tl-check";
+      check.textContent = "☑ " + s.checklist.filter((i) => i.done).length + "/" + s.checklist.length + " done";
+      block.appendChild(check);
+    }
     if (s.note) {
       const note = document.createElement("span");
       note.className = "tl-note";
@@ -999,6 +1166,7 @@ const editError = document.getElementById("edit-error");
 
 // The session being edited, exactly as it was when the form opened.
 let editingOriginal = null;
+let editChecklist = []; // the checklist shown on the edit screen (a copy)
 const editTitle = document.getElementById("edit-title");
 const editDeleteBtn = document.getElementById("edit-delete");
 
@@ -1057,6 +1225,9 @@ function showEditForm(s, isNew) {
   editDeleteBtn.hidden = isNew;
   editTask.value = s.task;
   editNote.value = s.note || "";
+  // Work on a copy; it's only saved when you tap Save
+  editChecklist = (s.checklist || []).map((i) => ({ text: i.text, done: i.done }));
+  renderChecklist(editChecklistItems, editChecklist, true, () => {});
   editStart.value = toLocalInputValue(s.start);
   editEnd.value = toLocalInputValue(s.end);
   editPaused.value = Math.round(s.pausedMs / 60000);
@@ -1088,6 +1259,7 @@ function readEditForm() {
     end: end,
     pausedMs: pausedMs,
     note: editNote.value.trim(),
+    checklist: cleanChecklist(editChecklist),
   };
 }
 
@@ -1392,15 +1564,20 @@ function renderStats(data) {
   statsDayEmpty.hidden = daySessions.length > 0;
   renderTaskTotals(statsDayList, daySessions);
 
-  // "Done": the notes written after each session of that day, in time order.
-  const notes = daySessions
-    .filter((s) => s.note)
-    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-  statsNotes.hidden = notes.length === 0;
-  statsNotesList.innerHTML = ""; // remove the old notes
-  for (const s of notes) {
+  // "Done": ticked checklist items and notes of that day, in time order.
+  const doneLines = [];
+  daySessions
+    .slice()
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .forEach((s) => {
+      for (const item of s.checklist || []) if (item.done) doneLines.push("✓ " + item.text);
+      if (s.note) doneLines.push(s.note);
+    });
+  statsNotes.hidden = doneLines.length === 0;
+  statsNotesList.innerHTML = ""; // remove the old lines
+  for (const line of doneLines) {
     const li = document.createElement("li");
-    li.textContent = s.note; // textContent: always shown as plain text
+    li.textContent = line; // textContent: always shown as plain text
     statsNotesList.appendChild(li);
   }
 
@@ -1689,6 +1866,7 @@ async function importBackup(file) {
       end: s.end,
       pausedMs: s.pausedMs,
       note: typeof s.note === "string" ? s.note : "",
+      checklist: Array.isArray(s.checklist) ? cleanChecklist(s.checklist) : [],
     });
   }
   saveData(data);
@@ -1706,6 +1884,7 @@ function renderRecentTasks(sessions) {
     btn.textContent = item.task;
     btn.addEventListener("click", () => {
       taskInput.value = item.task;
+      updateBulb(); // a title is there now, so the bulb can pop up
     });
     recentTasksBox.appendChild(btn);
   }
@@ -1819,6 +1998,10 @@ document.getElementById("edit-delete").addEventListener("click", deleteEdit);
 for (const input of [editStart, editEnd, editPaused]) {
   input.addEventListener("input", updateEditDuration);
 }
+
+// Light bulb: appears as you type a title; tap it for a checklist
+bulbBtn.addEventListener("click", toggleDraftChecklist);
+taskInput.addEventListener("input", updateBulb);
 
 // Pressing Enter in the task box also starts.
 taskInput.addEventListener("keydown", (event) => {
