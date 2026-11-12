@@ -234,7 +234,28 @@
       <!-- Timer mode only: "Focus 2 of 3" or "Break" -->
       <p id="timer-phase" class="timer-phase" hidden></p>
       <p id="timer-task" class="timer-task"></p>
-      <p id="timer-display" class="timer-display">0:00:00</p>
+      <!-- The clock. In Timer mode it sits inside a round dial that fills
+           with water as time passes (full to the brim = block finished). -->
+      <div id="dial" class="dial">
+        <svg id="dial-svg" class="dial-svg" viewBox="0 0 200 200" aria-hidden="true" hidden>
+          <defs>
+            <!-- Only show the water inside the circle -->
+            <clipPath id="dial-clip"><circle cx="100" cy="100" r="95"/></clipPath>
+          </defs>
+          <g clip-path="url(#dial-clip)">
+            <!-- Moved up and down by app.js to set the water level -->
+            <g id="water-level" transform="translate(0 205)">
+              <!-- Two wave layers drifting in opposite directions = flowing water.
+                   Each path is two wave lengths wide so the drift loops seamlessly. -->
+              <path class="wave wave-back" d="M0 0 Q25 -7 50 0 T100 0 T150 0 T200 0 T250 0 T300 0 T350 0 T400 0 V230 H0 Z"/>
+              <path class="wave wave-front" d="M0 0 Q25 -6 50 0 T100 0 T150 0 T200 0 T250 0 T300 0 T350 0 T400 0 V230 H0 Z"/>
+            </g>
+          </g>
+          <!-- The rim of the dial -->
+          <circle class="dial-rim" cx="100" cy="100" r="95"/>
+        </svg>
+        <p id="timer-display" class="timer-display">0:00:00</p>
+      </div>
       <p id="timer-status" class="timer-status"></p>
       <!-- Timer mode only: "Studied 0:40:00 of 2:00:00 · next: 10 min break" -->
       <p id="timer-progress" class="timer-progress" hidden></p>

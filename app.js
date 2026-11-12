@@ -592,6 +592,9 @@ const timerStatus = document.getElementById("timer-status");
 const pauseBtn = document.getElementById("pause-btn");
 const recentTasksBox = document.getElementById("recent-tasks");
 const timerPhase = document.getElementById("timer-phase");
+const dial = document.getElementById("dial");
+const dialSvg = document.getElementById("dial-svg");
+const waterLevel = document.getElementById("water-level");
 const timerProgress = document.getElementById("timer-progress");
 const modeStopwatch = document.getElementById("mode-stopwatch");
 const modeTimer = document.getElementById("mode-timer");
@@ -1675,6 +1678,9 @@ function updateTimerDisplay() {
   document.body.classList.remove("on-break");
   timerPhase.hidden = true;
   timerProgress.hidden = true;
+  dialSvg.setAttribute("hidden", ""); // the water dial is only for Timer mode
+  // (SVG elements have no .hidden shortcut like normal elements, so we set the attribute)
+  dial.classList.remove("has-dial");
   if (!session) return;
 
   if (session.mode !== "timer") {
@@ -1701,6 +1707,14 @@ function updateTimerDisplay() {
   const phase = phases[session.phase];
   const leftMs = phase.min * 60000 - elapsedMs(session);
   timerDisplay.textContent = formatDuration(leftMs + 999); // round up: show 0:00:01, never 0:00:00 early
+
+  // Water dial: the water rises as the phase goes on, full to the brim at the end.
+  // 205 = just below the bottom of the circle (empty), -8 = above the top (full,
+  // so even the wave dips are over the rim).
+  const progress = Math.min(1, Math.max(0, elapsedMs(session) / (phase.min * 60000)));
+  dialSvg.removeAttribute("hidden");
+  dial.classList.add("has-dial");
+  waterLevel.style.transform = "translateY(" + (205 - progress * 213) + "px)";
   const blocks = session.plan.focus.length;
   timerPhase.hidden = false;
   timerPhase.textContent = phase.type === "focus" ? "Focus " + phase.number + " of " + blocks : "Break";

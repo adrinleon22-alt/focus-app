@@ -1036,6 +1036,80 @@ body.nav-visible .screen {
   color: var(--muted);
 }
 
+/* ---- Water dial around the countdown (Timer mode) ---- */
+:root {
+  --water: #0A84FF; /* Apple's system blue: the only "colour" in the black & white look */
+}
+
+.dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* With the dial showing: a big circle, the digits sit in its middle */
+.dial.has-dial {
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+}
+
+.dial-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dial-svg[hidden] {
+  display: none;
+}
+
+.dial-rim {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+/* The water level glides smoothly between updates */
+#water-level {
+  transition: transform 1s linear;
+}
+
+.wave {
+  fill: var(--water);
+}
+
+.wave-back {
+  opacity: 0.25;
+  animation: drift 6s linear infinite reverse;
+}
+
+.wave-front {
+  opacity: 0.4;
+  animation: drift 3.5s linear infinite;
+}
+
+/* Slide one wave length (100 units) sideways, then repeat = endless flow */
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100px); }
+}
+
+/* During a break the water is calm grey */
+body.on-break .wave {
+  fill: var(--muted);
+}
+
+/* Digits inside the dial: a bit smaller so they fit, readable over the water */
+.dial.has-dial .timer-display {
+  position: relative; /* above the water */
+  font-size: clamp(40px, 13vw, 54px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave { animation: none; }
+}
+
 /* Centre the clock between the top of the screen and the buttons */
 .timer-center {
   margin: auto 0; /* equal free space above and below */
