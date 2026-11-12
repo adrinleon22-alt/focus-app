@@ -7,10 +7,10 @@
   <!-- Tells the browser this page supports both light and dark mode -->
   <meta name="color-scheme" content="light dark">
   <title>Telos</title>
-  <!-- "?v=8" = version number. Raise it with every release (together with CACHE_NAME
+  <!-- "?v=9" = version number. Raise it with every release (together with CACHE_NAME
        in sw.js): a new address can't come from an old saved copy, so the page,
        its styles and its code always belong to the same version. -->
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
@@ -37,6 +37,10 @@
   <!-- Screen 1: Home. Type a task and start. -->
   <main id="home-screen" class="screen">
     <h1 class="app-title">Telos</h1>
+
+    <!-- Two columns on laptops/landscape screens: "today" on the left, "start a
+         session" on the right. On phones these boxes don't affect the layout. -->
+    <div class="home-left">
 
     <!-- Today's total with a ring showing progress towards the daily goal.
          Tapping it opens the Today screen. The ring is drawn by app.js. -->
@@ -65,6 +69,10 @@
         </div>
       </div>
     </div>
+
+    </div><!-- /home-left -->
+
+    <div class="home-right">
 
     <!-- Session title. A light bulb pops up once you type: tap it to add a checklist. -->
     <div class="title-row">
@@ -99,6 +107,8 @@
     </div>
 
     <button id="start-btn" class="big-btn primary">Start</button>
+
+    </div><!-- /home-right -->
 
     <!-- Small motto at the bottom of the home screen -->
     <!-- Hover or press it: the letters ripple like a wave (app.js splits it into letters) -->
@@ -361,6 +371,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </body>
 </html>

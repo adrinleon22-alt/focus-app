@@ -1856,3 +1856,88 @@ body.on-break .big-btn:not(.danger) {
     width: 100%;
   }
 }
+
+/* ---- Home screen columns ----
+   On phones the two boxes are "invisible" (display: contents), so their
+   contents behave exactly as before. */
+.home-left,
+.home-right {
+  display: contents;
+}
+
+/* ---- Laptops and landscape screens (900px+): website-style layout ---- */
+@media (min-width: 900px) {
+  /* Like a website: everything starts on the left instead of floating in the
+     middle. The running timer stays centred (it's a full-screen focus view). */
+  .screen:not(#timer-screen) {
+    margin-left: 0;
+    margin-right: auto;
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  /* Home: two columns. Title across the top, motto across the bottom.
+     (":not([hidden])": only while Home is showing; otherwise this rule would
+     beat the one that hides screens, and Home would stay visible on every tab.) */
+  #home-screen {
+    max-width: 1200px;
+  }
+
+  #home-screen:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.15fr);
+    grid-template-rows: auto auto 1fr;
+    column-gap: 48px;
+    row-gap: 28px;
+    align-content: start;
+  }
+
+  #home-screen > .app-title {
+    grid-column: 1 / -1;
+  }
+
+  .home-left,
+  .home-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #home-screen .tagline {
+    grid-column: 1 / -1;
+    align-self: end;
+    text-align: left;
+  }
+
+  /* A bigger "Today" card, now that there's room */
+  .today-card {
+    padding: 28px 32px;
+    gap: 28px;
+    border-radius: 28px;
+  }
+
+  .today-card svg {
+    width: 108px;
+    height: 108px;
+  }
+
+  .today-card .today-label {
+    font-size: 17px;
+  }
+
+  .today-card .home-total {
+    font-size: 64px;
+  }
+
+  /* Other screens use the width too */
+  #stats-screen,
+  #history-screen,
+  #day-screen {
+    max-width: 1200px;
+  }
+
+  #edit-screen,
+  #today-screen {
+    max-width: 640px;
+  }
+}
