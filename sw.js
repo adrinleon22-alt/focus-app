@@ -4,7 +4,7 @@
 
 // Name of our storage box for files. Only needs changing if the LIST
 // of files below changes (e.g. a new file is added).
-const CACHE_NAME = "studytracker-files-v1";
+const CACHE_NAME = "studytracker-files-v2"; // v2: added the font files
 
 // Everything the app needs to start.
 const APP_FILES = [
@@ -16,6 +16,8 @@ const APP_FILES = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png",
+  "./fonts/google-sans-flex-latin.woff2",
+  "./fonts/google-sans-flex-latin-ext.woff2",
 ];
 
 // First install: download all app files into the cache.

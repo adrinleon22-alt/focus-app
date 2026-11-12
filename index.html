@@ -12,8 +12,8 @@
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
   <!-- Colour of the phone's status bar / app switcher: matches light or dark mode -->
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F4FAFB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D1517" media="(prefers-color-scheme: dark)">
   <!-- iPhone: home-screen icon, full screen, and the name under the icon -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,37 +24,49 @@
 <body>
   <!-- Screen 1: Home. Type a task and start. -->
   <main id="home-screen" class="screen">
-    <h1>Study Tracker</h1>
+    <!-- Title on the left, round stats icon on the right -->
+    <div class="screen-header">
+      <h1>Study Tracker</h1>
+      <button id="stats-link" class="icon-btn" type="button" aria-label="Stats & history" title="Stats & history">
+        <!-- bar-chart icon -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20a1 1 0 0 1-1-1v-5a1 1 0 0 1 2 0v5a1 1 0 0 1-1 1zm5 0a1 1 0 0 1-1-1V5a1 1 0 0 1 2 0v14a1 1 0 0 1-1 1zm5 0a1 1 0 0 1-1-1v-9a1 1 0 0 1 2 0v9a1 1 0 0 1-1 1z"/></svg>
+      </button>
+    </div>
 
-    <!-- Today's total. Tapping it opens the Today screen. -->
-    <button id="today-link" class="today-link" type="button">
-      <span class="muted">Today ›</span>
-      <span id="home-today-total" class="home-total">0:00:00</span>
+    <!-- Today's total with a ring showing progress towards the daily goal.
+         Tapping it opens the Today screen. The ring is drawn by app.js. -->
+    <button id="today-link" class="today-card" type="button">
+      <svg id="home-ring" viewBox="0 0 40 40" aria-hidden="true"></svg>
+      <span>
+        <span id="home-today-label" class="today-label">Today</span>
+        <span id="home-today-total" class="home-total">0:00:00</span>
+      </span>
     </button>
 
-    <!-- Shown briefly after Stop, e.g. "Saved: Statistik Blatt 3 – 0:42:10" -->
-    <p id="saved-message" class="saved-message" hidden></p>
+    <!-- After Stop: "Saved: ..." plus a small box for what you got done -->
+    <div id="note-card" class="note-card" hidden>
+      <p id="saved-message" class="saved-line"></p>
+      <div id="note-form">
+        <label for="note-input">What did you get done?</label>
+        <textarea id="note-input" rows="2" placeholder="e.g. Finished exercises 1–4"></textarea>
+        <div class="note-actions">
+          <button id="note-skip" class="link-btn" type="button">Skip</button>
+          <button id="note-save" class="big-btn primary note-save" type="button">Save note</button>
+        </div>
+      </div>
+    </div>
 
-    <label for="task-input">What are you working on?</label>
-    <input id="task-input" type="text" placeholder="e.g. Statistik Blatt 3" autocomplete="off">
-
-    <label for="subject-input">Subject (optional)</label>
-    <input id="subject-input" type="text" placeholder="e.g. Statistik" autocomplete="off">
+    <input id="task-input" type="text" placeholder="What are you working on?" aria-label="What are you working on?" autocomplete="off">
 
     <!-- Buttons for recent tasks get added here by app.js -->
     <div id="recent-tasks" class="recent-tasks"></div>
 
     <button id="start-btn" class="big-btn primary">Start</button>
-
-    <!-- Small links at the very bottom, out of the way of Start -->
-    <div class="bottom-links">
-      <button id="stats-link" class="link-btn" type="button">Stats &amp; history ›</button>
-    </div>
   </main>
 
   <!-- Screen 7: Stats. Bar chart of the last 7 days; tap a bar to see that day. -->
   <main id="stats-screen" class="screen" hidden>
-    <button id="stats-back" class="link-btn" type="button">‹ Back</button>
+    <button id="stats-back" class="icon-btn back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 18.3a1 1 0 0 1-1.4 0l-5.6-5.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 1 1 1.4 1.4L6.8 11H19a1 1 0 0 1 0 2H6.8l3.9 3.9a1 1 0 0 1 0 1.4z"/></svg></button>
     <h1>Focus time</h1>
 
     <!-- Week / Month switch on the left, daily goal on the right -->
@@ -115,6 +127,12 @@
     <p id="stats-day-empty" class="muted" hidden>Nothing tracked on this day.</p>
     <ul id="stats-day-list" class="task-list"></ul>
 
+    <!-- Notes written after Stop ("What did you get done?") for the selected day -->
+    <div id="stats-notes" hidden>
+      <h2 class="small-heading">Done</h2>
+      <ul id="stats-notes-list" class="notes-list"></ul>
+    </div>
+
     <!-- Recent days: the last few days you studied. Tap one to see/edit its sessions. -->
     <section class="section">
       <h2>Recent days</h2>
@@ -136,7 +154,7 @@
 
   <!-- Screen 4: All days (full history), newest first. -->
   <main id="history-screen" class="screen" hidden>
-    <button id="history-back" class="link-btn" type="button">‹ Back</button>
+    <button id="history-back" class="icon-btn back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 18.3a1 1 0 0 1-1.4 0l-5.6-5.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 1 1 1.4 1.4L6.8 11H19a1 1 0 0 1 0 2H6.8l3.9 3.9a1 1 0 0 1 0 1.4z"/></svg></button>
     <h1>All days</h1>
     <p id="history-empty" class="muted" hidden>No sessions yet.</p>
     <!-- One block per day gets added here by app.js -->
@@ -145,7 +163,7 @@
 
   <!-- Screen 5: One day's sessions, one by one -->
   <main id="day-screen" class="screen" hidden>
-    <button id="day-back" class="link-btn" type="button">‹ Back</button>
+    <button id="day-back" class="icon-btn back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 18.3a1 1 0 0 1-1.4 0l-5.6-5.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 1 1 1.4 1.4L6.8 11H19a1 1 0 0 1 0 2H6.8l3.9 3.9a1 1 0 0 1 0 1.4z"/></svg></button>
     <h1 id="day-title"></h1>
     <p id="day-total" class="today-total">0:00:00</p>
     <!-- One row per session gets added here by app.js -->
@@ -154,7 +172,7 @@
 
   <!-- Screen 3: Today. Total plus time per task. -->
   <main id="today-screen" class="screen" hidden>
-    <button id="today-back" class="link-btn" type="button">‹ Back</button>
+    <button id="today-back" class="icon-btn back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 18.3a1 1 0 0 1-1.4 0l-5.6-5.6a1 1 0 0 1 0-1.4l5.6-5.6a1 1 0 1 1 1.4 1.4L6.8 11H19a1 1 0 0 1 0 2H6.8l3.9 3.9a1 1 0 0 1 0 1.4z"/></svg></button>
     <h1>Today</h1>
     <p id="today-total" class="today-total">0:00:00</p>
     <p id="today-empty" class="muted" hidden>Nothing tracked today yet.</p>
@@ -170,8 +188,8 @@
     <label for="edit-task">Task</label>
     <input id="edit-task" type="text" autocomplete="off">
 
-    <label for="edit-subject">Subject (optional)</label>
-    <input id="edit-subject" type="text" autocomplete="off">
+    <label for="edit-note">What did you get done? (optional)</label>
+    <textarea id="edit-note" rows="3"></textarea>
 
     <!-- datetime-local opens the phone's own date + time picker -->
     <label for="edit-start">Start</label>

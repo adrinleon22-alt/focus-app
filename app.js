@@ -68,15 +68,13 @@ function startSession() {
   const data = loadData();
   data.activeSession = {
     task: task,
-    subject: subjectInput.value.trim(), // empty string if not filled in
     start: new Date().toISOString(),
     pausedMs: 0,
     pausedAt: null,
   };
   saveData(data); // save immediately so a refresh loses nothing
   taskInput.value = "";
-  subjectInput.value = "";
-  savedMessageText = ""; // hide the old "Saved" message
+  closeNoteCard(); // hide the last "Saved / what did you get done?" card
   render();
 }
 
@@ -111,6 +109,8 @@ function stopSession() {
   }
 
   // The finished session, in the shape described in PLAN.md.
+  // (Subject is no longer asked for; older sessions may still have one.
+  //  note = "What did you get done?", filled in right after Stop.)
   const finished = {
     id: makeId(),
     task: session.task,
@@ -118,6 +118,7 @@ function stopSession() {
     start: session.start,
     end: new Date(now).toISOString(),
     pausedMs: pausedMs,
+    note: "",
   };
 
   data.sessions.push(finished);
@@ -125,8 +126,44 @@ function stopSession() {
   saveData(data); // session saved and timer cleared in one write
 
   const duration = now - Date.parse(finished.start) - finished.pausedMs;
-  savedMessageText = "Saved: " + finished.task + " – " + formatDuration(duration);
+  openNoteCard(finished.id, "Saved: " + finished.task + " – " + formatDuration(duration));
   render();
+}
+
+// ---- "What did you get done?" card on the home screen, shown after Stop ----
+let noteSessionId = null; // which session the note belongs to
+
+function openNoteCard(sessionId, savedText) {
+  noteSessionId = sessionId;
+  savedMessage.textContent = savedText;
+  noteInput.value = "";
+  noteForm.hidden = false;
+  noteCard.hidden = false;
+}
+
+function closeNoteCard() {
+  noteSessionId = null;
+  noteCard.hidden = true;
+}
+
+// Save the note into the session it belongs to, then keep only the "Saved" line.
+function saveNote() {
+  const text = noteInput.value.trim();
+  if (text && noteSessionId) {
+    const data = loadData();
+    const s = data.sessions.find((x) => x.id === noteSessionId);
+    if (s) {
+      s.note = text;
+      saveData(data);
+    }
+    savedMessage.textContent += " · note saved ✓";
+  }
+  noteForm.hidden = true; // the box goes away, the "Saved" line stays
+}
+
+// Skip: no note, just fold the box away.
+function skipNote() {
+  noteForm.hidden = true;
 }
 
 // The last few different tasks, newest first, for the quick-pick buttons.
@@ -288,18 +325,19 @@ const timerTask = document.getElementById("timer-task");
 const timerDisplay = document.getElementById("timer-display");
 const timerStatus = document.getElementById("timer-status");
 const pauseBtn = document.getElementById("pause-btn");
-const subjectInput = document.getElementById("subject-input");
 const recentTasksBox = document.getElementById("recent-tasks");
 const savedMessage = document.getElementById("saved-message");
+const noteCard = document.getElementById("note-card");
+const noteForm = document.getElementById("note-form");
+const noteInput = document.getElementById("note-input");
 
 const todayScreen = document.getElementById("today-screen");
 const homeTodayTotal = document.getElementById("home-today-total");
+const homeTodayLabel = document.getElementById("home-today-label");
+const homeRing = document.getElementById("home-ring");
 const todayTotal = document.getElementById("today-total");
 const todayEmpty = document.getElementById("today-empty");
 const todayList = document.getElementById("today-list");
-
-// Text of the "Saved: ..." message. Not stored, so it's gone after a reload.
-let savedMessageText = "";
 
 const historyEmpty = document.getElementById("history-empty");
 const historyList = document.getElementById("history-list");
@@ -356,9 +394,12 @@ function render() {
   if (!session) {
     const today = sessionsOnDay(data.sessions, localDayKey(new Date()));
     if (currentView === "home") {
-      homeTodayTotal.textContent = formatDuration(sumDurations(today));
-      savedMessage.textContent = savedMessageText;
-      savedMessage.hidden = !savedMessageText;
+      const todayMs = sumDurations(today);
+      const goal = goalForDay(data.goals, localDayKey(new Date()));
+      homeTodayTotal.textContent = formatDuration(todayMs);
+      homeTodayLabel.textContent = "Today · goal " + formatAxisMinutes(goal) +
+        (todayMs >= goal * 60000 ? " ✓" : "");
+      drawRing(homeRing, todayMs / (goal * 60000));
       renderRecentTasks(data.sessions);
     } else if (currentView === "today") {
       renderToday(today);
@@ -467,6 +508,12 @@ function renderDay(dayKey, daySessions) {
     const clock = document.createElement("span");
     clock.textContent = formatClock(s.start) + "–" + formatClock(s.end);
     info.append(clock, taskLabel(s.task, s.subject));
+    if (s.note) {
+      const note = document.createElement("span");
+      note.className = "session-note";
+      note.textContent = s.note; // what you got done in this session
+      info.appendChild(note);
+    }
     if (s.pausedMs >= 1000) {
       const paused = document.createElement("span");
       paused.className = "muted small";
@@ -489,7 +536,7 @@ function renderDay(dayKey, daySessions) {
 // =====================================================================
 
 const editTask = document.getElementById("edit-task");
-const editSubject = document.getElementById("edit-subject");
+const editNote = document.getElementById("edit-note");
 const editStart = document.getElementById("edit-start");
 const editEnd = document.getElementById("edit-end");
 const editPaused = document.getElementById("edit-paused");
@@ -513,7 +560,7 @@ function openEdit(id) {
   if (!s) return;
   editingOriginal = s;
   editTask.value = s.task;
-  editSubject.value = s.subject || "";
+  editNote.value = s.note || "";
   editStart.value = toLocalInputValue(s.start);
   editEnd.value = toLocalInputValue(s.end);
   editPaused.value = Math.round(s.pausedMs / 60000);
@@ -539,10 +586,11 @@ function readEditForm() {
   return {
     id: o.id, // same id: it's still the same session
     task: editTask.value.trim(),
-    subject: editSubject.value.trim(),
+    subject: o.subject || "", // no longer editable; older sessions keep theirs
     start: start,
     end: end,
     pausedMs: pausedMs,
+    note: editNote.value.trim(),
   };
 }
 
@@ -605,6 +653,8 @@ const statsDayEmpty = document.getElementById("stats-day-empty");
 const statsDayList = document.getElementById("stats-day-list");
 
 const statsDayGoal = document.getElementById("stats-day-goal");
+const statsNotes = document.getElementById("stats-notes");
+const statsNotesList = document.getElementById("stats-notes-list");
 const recentDays = document.getElementById("recent-days");
 const recentEmpty = document.getElementById("recent-empty");
 const allDaysBtn = document.getElementById("all-days-btn");
@@ -659,6 +709,24 @@ function svgEl(tag, attributes) {
     if (attributes[name] != null) el.setAttribute(name, attributes[name]); // skip empty ones
   }
   return el;
+}
+
+// Draw a progress ring into an <svg viewBox="0 0 40 40">.
+// progress: 0 = empty, 1 = full (goal reached; then the ring turns green).
+function drawRing(svg, progress) {
+  const R = 16;
+  const C = 2 * Math.PI * R; // length of the circle
+  const p = Math.max(0, Math.min(1, progress));
+  svg.innerHTML = ""; // remove the old ring
+  svg.classList.toggle("met", progress >= 1);
+  svg.appendChild(svgEl("circle", { class: "ring-track", cx: 20, cy: 20, r: R }));
+  if (p > 0) {
+    svg.appendChild(svgEl("circle", {
+      class: "ring-progress", cx: 20, cy: 20, r: R,
+      "stroke-dasharray": (p * C) + " " + C, // draw only part of the circle
+      transform: "rotate(-90 20 20)", // start at 12 o'clock
+    }));
+  }
 }
 
 // Bar shape: rounded corners on top, square at the bottom (the baseline).
@@ -822,6 +890,18 @@ function renderStats(data) {
   statsDayGoal.textContent = goalText(selected);
   statsDayEmpty.hidden = daySessions.length > 0;
   renderTaskTotals(statsDayList, daySessions);
+
+  // "Done": the notes written after each session of that day, in time order.
+  const notes = daySessions
+    .filter((s) => s.note)
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  statsNotes.hidden = notes.length === 0;
+  statsNotesList.innerHTML = ""; // remove the old notes
+  for (const s of notes) {
+    const li = document.createElement("li");
+    li.textContent = s.note; // textContent: always shown as plain text
+    statsNotesList.appendChild(li);
+  }
 
   // Recent days: the last few days with sessions; the rest is behind "Show all days".
   const RECENT_COUNT = 5;
@@ -1107,6 +1187,7 @@ async function importBackup(file) {
       start: s.start,
       end: s.end,
       pausedMs: s.pausedMs,
+      note: typeof s.note === "string" ? s.note : "",
     });
   }
   saveData(data);
@@ -1114,7 +1195,7 @@ async function importBackup(file) {
   render(); // redraw History with the new days
 }
 
-// Draw one button per recent task. Tapping it fills in task + subject.
+// Draw one button per recent task. Tapping it fills in the task name.
 function renderRecentTasks(sessions) {
   recentTasksBox.innerHTML = ""; // remove the old buttons
   for (const item of getRecentTasks(sessions, 5)) {
@@ -1122,15 +1203,8 @@ function renderRecentTasks(sessions) {
     btn.type = "button";
     // textContent (not innerHTML) so task names are always shown as plain text
     btn.textContent = item.task;
-    if (item.subject) {
-      const tag = document.createElement("span");
-      tag.className = "subject";
-      tag.textContent = " · " + item.subject;
-      btn.appendChild(tag);
-    }
     btn.addEventListener("click", () => {
       taskInput.value = item.task;
-      subjectInput.value = item.subject || "";
     });
     recentTasksBox.appendChild(btn);
   }
@@ -1190,12 +1264,14 @@ for (const input of [editStart, editEnd, editPaused]) {
   input.addEventListener("input", updateEditDuration);
 }
 
-// Pressing Enter in either box also starts.
-for (const input of [taskInput, subjectInput]) {
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") startSession();
-  });
-}
+// Pressing Enter in the task box also starts.
+taskInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") startSession();
+});
+
+// "What did you get done?" card after Stop
+document.getElementById("note-save").addEventListener("click", saveNote);
+document.getElementById("note-skip").addEventListener("click", skipNote);
 
 // Update every 250ms. Ticking more often than once a second keeps the
 // display from lagging behind; it does NOT affect accuracy.
