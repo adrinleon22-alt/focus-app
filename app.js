@@ -312,6 +312,7 @@ function togglePause() {
     // Resume: add the length of this pause to the total paused time.
     session.pausedMs += Date.now() - Date.parse(session.pausedAt);
     session.pausedAt = null;
+    buddyDuck(); // the stick figure ducks back behind his ledge
   } else {
     // Pause: remember when it started.
     session.pausedAt = new Date().toISOString();
@@ -320,17 +321,19 @@ function togglePause() {
   render();
 }
 
-function stopSession() {
+// at = the moment Stop was tapped (defaults to now). The stick figure's salute
+// takes ~2 seconds, and those seconds must not count as study time.
+function stopSession(at = Date.now()) {
   const data = loadData();
   const session = data.activeSession;
   if (!session) return;
 
   if (session.mode === "timer") {
-    stopTimerEarly(data);
+    stopTimerEarly(data, at);
     return;
   }
 
-  const now = Date.now();
+  const now = at;
   let pausedMs = session.pausedMs;
   // Stopped while paused: the current pause also counts as paused time.
   if (session.pausedAt) {
@@ -361,13 +364,13 @@ function stopSession() {
 
 // Stop pressed in Timer mode: save the blocks that ended, plus the part of
 // the current focus block done so far. A break that's cut short adds nothing.
-function stopTimerEarly(data) {
+function stopTimerEarly(data, at = Date.now()) {
   advanceTimer(data); // first save anything that already finished
   const t = data.activeSession;
   const phases = phasesOf(t.plan);
   const phase = phases[t.phase];
   if (phase && phase.type === "focus") {
-    const now = Date.now();
+    const now = at;
     const end = t.pausedAt ? Date.parse(t.pausedAt) : now;
     const pausedMs = t.pausedMs + (t.pausedAt ? now - Date.parse(t.pausedAt) : 0);
     const worked = end - Date.parse(t.start) - t.pausedMs;
@@ -393,6 +396,40 @@ function stopTimerEarly(data) {
     return;
   }
   finishTimer(data);
+}
+
+// ---- Stick figure on the timer screen (the moves themselves are CSS) ----
+const SALUTE_MS = 1800; // must match the 1.8s salute animation in style.css
+let saluting = false;
+
+// Resume: duck back down quickly, then the normal peeking starts again.
+function buddyDuck() {
+  buddy.classList.remove("paused");
+  buddy.classList.add("ducking");
+  setTimeout(() => buddy.classList.remove("ducking"), 400);
+}
+
+// Stop: remember the exact moment, let him salute, THEN stop the session.
+function stopWithSalute() {
+  if (saluting) return; // ignore extra taps during the salute
+  const stoppedAt = Date.now();
+  const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (calm) {
+    stopSession(stoppedAt);
+    return;
+  }
+  saluting = true;
+  pauseBtn.disabled = true;
+  stopBtn.disabled = true;
+  buddy.classList.remove("paused", "ducking");
+  buddy.classList.add("saluting");
+  setTimeout(() => {
+    buddy.classList.remove("saluting");
+    saluting = false;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+    stopSession(stoppedAt);
+  }, SALUTE_MS);
 }
 
 // ---- "What did you get done?" card on the home screen, shown after Stop ----
@@ -592,6 +629,8 @@ const timerStatus = document.getElementById("timer-status");
 const pauseBtn = document.getElementById("pause-btn");
 const recentTasksBox = document.getElementById("recent-tasks");
 const timerPhase = document.getElementById("timer-phase");
+const buddy = document.getElementById("buddy");
+const stopBtn = document.getElementById("stop-btn");
 const dial = document.getElementById("dial");
 const dialSvg = document.getElementById("dial-svg");
 const waterLevel = document.getElementById("water-level");
@@ -730,6 +769,7 @@ function render() {
 
   if (session) {
     timerTask.textContent = session.task;
+    if (!buddy.classList.contains("saluting")) buddy.classList.toggle("paused", !!session.pausedAt);
     pauseBtn.textContent = session.pausedAt ? "Resume" : "Pause";
     timerStatus.textContent = session.pausedAt ? "Paused" : "";
     updateTimerDisplay();
@@ -1736,7 +1776,7 @@ function updateTimerDisplay() {
 
 document.getElementById("start-btn").addEventListener("click", startSession);
 pauseBtn.addEventListener("click", togglePause);
-document.getElementById("stop-btn").addEventListener("click", stopSession);
+document.getElementById("stop-btn").addEventListener("click", stopWithSalute);
 document.getElementById("today-link").addEventListener("click", () => openView("today"));
 document.getElementById("today-back").addEventListener("click", () => goBack());
 const bottomNav = document.getElementById("bottom-nav");
