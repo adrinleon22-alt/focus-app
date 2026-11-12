@@ -11,8 +11,9 @@
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
-  <!-- Colour of the phone's status bar / app switcher -->
-  <meta name="theme-color" content="#2563eb">
+  <!-- Colour of the phone's status bar / app switcher: matches light or dark mode -->
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
   <!-- iPhone: home-screen icon, full screen, and the name under the icon -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,7 +28,8 @@
 
     <!-- Today's total. Tapping it opens the Today screen. -->
     <button id="today-link" class="today-link" type="button">
-      Today: <strong id="home-today-total">0:00:00</strong> ›
+      <span class="muted">Today ›</span>
+      <span id="home-today-total" class="home-total">0:00:00</span>
     </button>
 
     <!-- Shown briefly after Stop, e.g. "Saved: Statistik Blatt 3 – 0:42:10" -->

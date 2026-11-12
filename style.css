@@ -32,13 +32,35 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
+  overflow-wrap: anywhere; /* very long task names wrap instead of widening the page */
+}
+
+/* All buttons: no blue flash on Android, no double-tap zoom, same font as the page */
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* While a button is held down it fades a little, so you see the tap registered */
+button:active {
+  opacity: 0.6;
 }
 
 /* Each screen fills the phone and stacks its content vertically */
 .screen {
   min-height: 100vh;
   min-height: 100dvh; /* better on phones: ignores the browser's address bar */
-  padding: 16px;
+  /* 16px of space, plus extra room for the notch/camera and the swipe bar.
+     env(safe-area-inset-...) is 0 on phones without them. */
+  padding:
+    calc(16px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(16px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
+  /* On a PC or tablet: a phone-width column in the middle */
+  max-width: 480px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -68,15 +90,25 @@ input[type="datetime-local"] {
   color: var(--muted);
 }
 
-/* "Today: 1:23:45 ›" on the home screen: looks like text, works as a button */
+/* "Today ›" with the big total under it: looks like text, works as a button */
 .today-link {
-  font-size: 20px;
-  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 18px;
+  padding: 8px 0 16px;
   border: none;
   background: none;
   color: var(--text);
   text-align: left;
   cursor: pointer;
+}
+
+.home-total {
+  font-size: 44px;
+  font-weight: 300; /* thin digits look calmer */
+  font-variant-numeric: tabular-nums;
 }
 
 /* Text-style buttons like "‹ Back" and "History ›" */
@@ -97,6 +129,7 @@ h1 {
 
 .today-total {
   font-size: 48px;
+  font-weight: 300;
   font-variant-numeric: tabular-nums;
   margin: 0;
 }
@@ -249,6 +282,13 @@ h1 {
   color: #ffffff;
 }
 
+/* The main Start button gets extra room around it and is a bit bigger */
+#start-btn {
+  margin-top: 12px;
+  padding: 24px;
+  font-size: 24px;
+}
+
 .big-btn.danger {
   background: var(--danger);
   color: #ffffff;
@@ -267,6 +307,7 @@ h1 {
 
 .timer-display {
   font-size: 64px;
+  font-weight: 300;
   font-variant-numeric: tabular-nums; /* digits all same width, so the number doesn't wiggle */
   margin: 0;
 }

@@ -275,6 +275,19 @@ let currentView = "home";
 // Which day the day screen shows, e.g. "2026-11-12".
 let selectedDay = null;
 
+// Going DEEPER (Home -> History -> Day -> Edit): remember the step in the
+// browser history, so the phone's back gesture can undo it.
+function openView(view) {
+  history.pushState({ view: view }, "");
+  showView(view);
+}
+
+// Going BACK: all Back buttons call this, exactly like the back gesture.
+function goBack(steps = 1) {
+  history.go(-steps);
+}
+
+// Show a screen without touching the browser history.
 function showView(view) {
   currentView = view;
   window.scrollTo(0, 0);
@@ -368,7 +381,7 @@ function renderHistory(sessions) {
 
     card.addEventListener("click", () => {
       selectedDay = day.dayKey;
-      showView("day");
+      openView("day");
     });
     historyList.appendChild(card);
   }
@@ -447,7 +460,7 @@ function openEdit(id) {
   editPaused.value = Math.round(s.pausedMs / 60000);
   editError.hidden = true;
   updateEditDuration();
-  showView("edit");
+  openView("edit");
 }
 
 // Read the form and turn it into session values.
@@ -507,7 +520,7 @@ function saveEdit() {
   saveData(data);
   // Go to the session's day (a new day if the start date was changed).
   selectedDay = localDayKey(new Date(updated.start));
-  showView("day");
+  goBack(); // back to the day screen, which now shows selectedDay
 }
 
 function deleteEdit() {
@@ -517,7 +530,7 @@ function deleteEdit() {
   saveData(data);
   // Back to the day; if that day is now empty, back to History instead.
   const left = sessionsOnDay(data.sessions, selectedDay);
-  showView(left.length > 0 ? "day" : "history");
+  goBack(left.length > 0 ? 1 : 2); // 2 steps = skip the now-empty day, land on History
 }
 
 // =====================================================================
@@ -658,11 +671,11 @@ function updateTimerDisplay() {
 document.getElementById("start-btn").addEventListener("click", startSession);
 pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
-document.getElementById("today-link").addEventListener("click", () => showView("today"));
-document.getElementById("today-back").addEventListener("click", () => showView("home"));
+document.getElementById("today-link").addEventListener("click", () => openView("today"));
+document.getElementById("today-back").addEventListener("click", () => goBack());
 document.getElementById("history-link").addEventListener("click", () => {
   showBackupMessage(""); // don't show an old backup message
-  showView("history");
+  openView("history");
 });
 document.getElementById("export-btn").addEventListener("click", exportBackup);
 // The Import button opens the hidden file picker...
@@ -673,9 +686,9 @@ importFile.addEventListener("change", async () => {
   if (file) await importBackup(file);
   importFile.value = ""; // so picking the same file again still works
 });
-document.getElementById("history-back").addEventListener("click", () => showView("home"));
-document.getElementById("day-back").addEventListener("click", () => showView("history"));
-document.getElementById("edit-cancel").addEventListener("click", () => showView("day"));
+document.getElementById("history-back").addEventListener("click", () => goBack());
+document.getElementById("day-back").addEventListener("click", () => goBack());
+document.getElementById("edit-cancel").addEventListener("click", () => goBack());
 document.getElementById("edit-save").addEventListener("click", saveEdit);
 document.getElementById("edit-delete").addEventListener("click", deleteEdit);
 // Update the duration preview whenever any edit field changes.
@@ -696,6 +709,20 @@ setInterval(updateTimerDisplay, 250);
 
 // When you come back to the app (unlock phone, switch apps), redraw at once.
 document.addEventListener("visibilitychange", render);
+
+// Back gesture / Back button: the browser tells us which step we went back to.
+window.addEventListener("popstate", (event) => {
+  let view = (event.state && event.state.view) || "home";
+  // After a page reload we no longer know which day or session was open,
+  // so fall back to History instead of showing a broken screen.
+  if ((view === "day" && !selectedDay) || (view === "edit" && !editingOriginal)) {
+    view = "history";
+  }
+  showView(view);
+});
+
+// The app always starts on Home; mark that as the first step in the history.
+history.replaceState({ view: "home" }, "");
 
 render(); // draw the correct screen on page load (resumes a running session)
 
