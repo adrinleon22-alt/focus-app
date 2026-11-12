@@ -2,6 +2,11 @@
 :root {
   --bg: #ffffff;
   --text: #1a1a1a;
+  --muted: #666666;
+  --border: #cccccc;
+  --btn-bg: #eeeeee;
+  --primary: #2563eb;
+  --danger: #dc2626;
 }
 
 /* If the phone is in dark mode, swap the colors */
@@ -9,6 +14,11 @@
   :root {
     --bg: #121212;
     --text: #eeeeee;
+    --muted: #999999;
+    --border: #444444;
+    --btn-bg: #2a2a2a;
+    --primary: #3b82f6;
+    --danger: #ef4444;
   }
 }
 
@@ -24,6 +34,81 @@ body {
   color: var(--text);
 }
 
-main {
+/* Each screen fills the phone and stacks its content vertically */
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh; /* better on phones: ignores the browser's address bar */
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The "hidden" attribute must win over display:flex above */
+.screen[hidden] {
+  display: none;
+}
+
+label {
+  color: var(--muted);
+}
+
+input[type="text"] {
+  font-size: 18px; /* 16px or more stops iPhones from zooming in on tap */
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Big, thumb-friendly buttons */
+.big-btn {
+  font-size: 22px;
+  padding: 20px;
+  border: none;
+  border-radius: 16px;
+  background: var(--btn-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.big-btn.primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.big-btn.danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* Timer screen: everything centered, buttons pushed to the bottom (easy to reach) */
+.timer {
+  justify-content: center;
+  text-align: center;
+}
+
+.timer-task {
+  font-size: 22px;
+  margin: 0;
+}
+
+.timer-display {
+  font-size: 64px;
+  font-variant-numeric: tabular-nums; /* digits all same width, so the number doesn't wiggle */
+  margin: 0;
+}
+
+.timer-status {
+  color: var(--muted);
+  min-height: 1.2em; /* keeps the layout from jumping when "Paused" appears */
+  margin: 0;
+}
+
+.timer-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto; /* push buttons to the bottom of the screen */
 }
