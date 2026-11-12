@@ -1,0 +1,29 @@
+/* Colors used across the app. Light mode first, dark mode below. */
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+}
+
+/* If the phone is in dark mode, swap the colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --text: #eeeeee;
+  }
+}
+
+/* Include padding in element sizes (makes layout math simpler) */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  padding: 16px;
+}
