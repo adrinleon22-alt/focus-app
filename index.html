@@ -32,11 +32,32 @@
     <div id="recent-tasks" class="recent-tasks"></div>
 
     <button id="start-btn" class="big-btn primary">Start</button>
+
+    <!-- Small link at the very bottom, out of the way of Start -->
+    <button id="history-link" class="link-btn bottom-link" type="button">History ›</button>
+  </main>
+
+  <!-- Screen 4: History. All days, newest first. -->
+  <main id="history-screen" class="screen" hidden>
+    <button id="history-back" class="link-btn" type="button">‹ Back</button>
+    <h1>History</h1>
+    <p id="history-empty" class="muted" hidden>No sessions yet.</p>
+    <!-- One block per day gets added here by app.js -->
+    <div id="history-list"></div>
+  </main>
+
+  <!-- Screen 5: One day's sessions, one by one -->
+  <main id="day-screen" class="screen" hidden>
+    <button id="day-back" class="link-btn" type="button">‹ Back</button>
+    <h1 id="day-title"></h1>
+    <p id="day-total" class="today-total">0:00:00</p>
+    <!-- One row per session gets added here by app.js -->
+    <ul id="day-list" class="task-list"></ul>
   </main>
 
   <!-- Screen 3: Today. Total plus time per task. -->
   <main id="today-screen" class="screen" hidden>
-    <button id="today-back" class="back-btn" type="button">‹ Back</button>
+    <button id="today-back" class="link-btn" type="button">‹ Back</button>
     <h1>Today</h1>
     <p id="today-total" class="today-total">0:00:00</p>
     <p id="today-empty" class="muted" hidden>Nothing tracked today yet.</p>

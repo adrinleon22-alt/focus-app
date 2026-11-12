@@ -77,8 +77,8 @@ input[type="text"] {
   cursor: pointer;
 }
 
-/* "‹ Back" at the top of sub-screens */
-.back-btn {
+/* Text-style buttons like "‹ Back" and "History ›" */
+.link-btn {
   align-self: flex-start;
   font-size: 18px;
   padding: 10px 0;
@@ -117,6 +117,53 @@ h1 {
 .task-list .time {
   font-variant-numeric: tabular-nums;
   white-space: nowrap; /* never break "0:52:10" over two lines */
+}
+
+/* Pushes the "History ›" link to the bottom of the home screen */
+.bottom-link {
+  margin-top: auto;
+  align-self: center;
+}
+
+/* One tappable block per day on the History screen */
+.day-card {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.day-card-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.day-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0 3px 12px;
+  color: var(--muted);
+}
+
+/* Session rows on the day screen: main line plus a small second line */
+.session-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.small {
+  font-size: 14px;
 }
 
 /* Confirmation after Stop */

@@ -182,6 +182,54 @@ function sumDurations(sessions) {
   return sessions.reduce((total, s) => total + sessionDuration(s), 0);
 }
 
+// Sort sessions into days. Returns [{ dayKey, sessions }], newest day first.
+// Inside each day, sessions are in time order (earliest first).
+function groupByDay(sessions) {
+  const byDay = new Map();
+  for (const s of sessions) {
+    const key = localDayKey(new Date(s.start));
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(s);
+  }
+  const days = [];
+  for (const [dayKey, daySessions] of byDay) {
+    daySessions.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+    days.push({ dayKey: dayKey, sessions: daySessions });
+  }
+  // "2026-11-12" style keys sort correctly as plain text
+  days.sort((a, b) => (a.dayKey < b.dayKey ? 1 : -1));
+  return days;
+}
+
+// "2026-11-12" -> "Thu, 12 Nov" (or "Do., 12. Nov." on a German phone).
+// The year is only shown for days in another year.
+function formatDayKey(dayKey) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const date = new Date(y, m - 1, d); // local date, not UTC
+  const options = { weekday: "short", day: "numeric", month: "short" };
+  if (y !== new Date().getFullYear()) options.year = "numeric";
+  return date.toLocaleDateString(undefined, options);
+}
+
+// ISO time -> local clock time like "14:05"
+function formatClock(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// "Statistik Blatt 3" plus a grey " · Statistik" if there is a subject.
+// Built with textContent so task names always show as plain text.
+function taskLabel(task, subject) {
+  const span = document.createElement("span");
+  span.textContent = task;
+  if (subject) {
+    const tag = document.createElement("span");
+    tag.className = "muted";
+    tag.textContent = " · " + subject;
+    span.appendChild(tag);
+  }
+  return span;
+}
+
 // =====================================================================
 // SCREENS
 // =====================================================================
@@ -206,9 +254,25 @@ const todayList = document.getElementById("today-list");
 // Text of the "Saved: ..." message. Not stored, so it's gone after a reload.
 let savedMessageText = "";
 
-// Which screen to show when no timer is running: "home" or "today".
+const historyEmpty = document.getElementById("history-empty");
+const historyList = document.getElementById("history-list");
+const dayTitle = document.getElementById("day-title");
+const dayTotal = document.getElementById("day-total");
+const dayList = document.getElementById("day-list");
+
+// All screens that are not the timer, by name.
+const screens = {
+  home: homeScreen,
+  today: todayScreen,
+  history: document.getElementById("history-screen"),
+  day: document.getElementById("day-screen"),
+};
+
+// Which screen to show when no timer is running: a name from `screens`.
 // (While a session runs, the timer screen always wins.)
 let currentView = "home";
+// Which day the day screen shows, e.g. "2026-11-12".
+let selectedDay = null;
 
 function showView(view) {
   currentView = view;
@@ -220,8 +284,11 @@ function showView(view) {
 function render() {
   const data = loadData();
   const session = data.activeSession;
-  homeScreen.hidden = !!session || currentView !== "home";
-  todayScreen.hidden = !!session || currentView !== "today";
+
+  // Hide every screen except the one we want.
+  for (const name in screens) {
+    screens[name].hidden = !!session || currentView !== name;
+  }
   timerScreen.hidden = !session;
 
   if (!session) {
@@ -233,6 +300,10 @@ function render() {
       renderRecentTasks(data.sessions);
     } else if (currentView === "today") {
       renderToday(today);
+    } else if (currentView === "history") {
+      renderHistory(data.sessions);
+    } else if (currentView === "day") {
+      renderDay(selectedDay, sessionsOnDay(data.sessions, selectedDay));
     }
   }
 
@@ -252,22 +323,84 @@ function renderToday(todaySessions) {
 
   for (const item of totalsByTask(todaySessions)) {
     const li = document.createElement("li");
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = formatDuration(item.ms);
+    li.append(taskLabel(item.task, item.subject), time);
+    todayList.appendChild(li);
+  }
+}
 
-    const name = document.createElement("span");
-    name.textContent = item.task;
-    if (item.subject) {
-      const tag = document.createElement("span");
-      tag.className = "muted";
-      tag.textContent = " · " + item.subject;
-      name.appendChild(tag);
+// Fill the History screen: one tappable card per day, newest first.
+function renderHistory(sessions) {
+  const days = groupByDay(sessions);
+  historyEmpty.hidden = days.length > 0;
+  historyList.innerHTML = ""; // remove the old cards
+
+  for (const day of days) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "day-card";
+
+    // Header line: date on the left, day total on the right
+    const header = document.createElement("span");
+    header.className = "day-card-header";
+    const date = document.createElement("span");
+    date.textContent = formatDayKey(day.dayKey);
+    const total = document.createElement("span");
+    total.className = "time";
+    total.textContent = formatDuration(sumDurations(day.sessions));
+    header.append(date, total);
+    card.appendChild(header);
+
+    // One small row per task
+    for (const item of totalsByTask(day.sessions)) {
+      const row = document.createElement("span");
+      row.className = "day-card-row";
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = formatDuration(item.ms);
+      row.append(taskLabel(item.task, item.subject), time);
+      card.appendChild(row);
+    }
+
+    card.addEventListener("click", () => {
+      selectedDay = day.dayKey;
+      showView("day");
+    });
+    historyList.appendChild(card);
+  }
+}
+
+// Fill the day screen: the day's total, then every session in time order.
+function renderDay(dayKey, daySessions) {
+  dayTitle.textContent = formatDayKey(dayKey);
+  dayTotal.textContent = formatDuration(sumDurations(daySessions));
+  dayList.innerHTML = ""; // remove the old rows
+
+  daySessions.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  for (const s of daySessions) {
+    const li = document.createElement("li");
+
+    // Left side: "14:00–14:45" on top, task below, paused time if any
+    const info = document.createElement("div");
+    info.className = "session-info";
+    const clock = document.createElement("span");
+    clock.textContent = formatClock(s.start) + "–" + formatClock(s.end);
+    info.append(clock, taskLabel(s.task, s.subject));
+    if (s.pausedMs >= 1000) {
+      const paused = document.createElement("span");
+      paused.className = "muted small";
+      paused.textContent = "paused " + formatDuration(s.pausedMs);
+      info.appendChild(paused);
     }
 
     const time = document.createElement("span");
     time.className = "time";
-    time.textContent = formatDuration(item.ms);
+    time.textContent = formatDuration(sessionDuration(s));
 
-    li.append(name, time);
-    todayList.appendChild(li);
+    li.append(info, time);
+    dayList.appendChild(li);
   }
 }
 
@@ -310,6 +443,9 @@ pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
 document.getElementById("today-link").addEventListener("click", () => showView("today"));
 document.getElementById("today-back").addEventListener("click", () => showView("home"));
+document.getElementById("history-link").addEventListener("click", () => showView("history"));
+document.getElementById("history-back").addEventListener("click", () => showView("home"));
+document.getElementById("day-back").addEventListener("click", () => showView("history"));
 
 // Pressing Enter in either box also starts.
 for (const input of [taskInput, subjectInput]) {
