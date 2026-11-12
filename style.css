@@ -75,10 +75,40 @@ button {
   touch-action: manipulation;
 }
 
-/* While a button is held down it fades a little, so you see the tap registered */
-button:active {
-  opacity: 0.6;
+/* ---- "Bubbly" feel for EVERY button ----
+   Hover (mouse) = grows a bit, press (finger or click) = squishes.
+   The overshooting curve makes it pop slightly past its size, then settle.
+   --grow sets how much each kind of button grows: small things pop more,
+   big full-width things only a little (otherwise they'd look huge). */
+button {
+  --grow: 1.06;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s, color 0.2s;
 }
+
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    transform: scale(var(--grow));
+  }
+}
+
+button:not(:disabled):active {
+  transform: scale(0.94);
+  transition-duration: 0.1s; /* squish quickly, spring back slowly */
+}
+
+/* How much each kind grows */
+.big-btn,
+.day-card,
+.today-card,
+.session-row { --grow: 1.025; }
+.recent-tasks button,
+.tab,
+.link-btn,
+.cal-cell { --grow: 1.08; }
+.icon-btn,
+.nav-arrow,
+.step-btn { --grow: 1.15; }
 
 /* Each screen fills the phone and stacks its content vertically */
 .screen {
@@ -669,11 +699,6 @@ textarea:focus {
   background: var(--btn-bg);
   color: var(--text);
   cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.big-btn:active {
-  transform: scale(0.97); /* a little squish when pressed */
 }
 
 .big-btn.primary {
@@ -707,8 +732,7 @@ textarea:focus {
   background: var(--card);
   color: var(--text);
   cursor: pointer;
-  /* the overshooting curve makes it "pop" a bit past its size, then settle */
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+  /* growing/squishing comes from the "bubbly" rules for all buttons above */
 }
 
 .icon-btn svg {
@@ -717,19 +741,15 @@ textarea:focus {
   fill: currentColor;
 }
 
-/* Mouse hover (PC): grow a bit */
+/* Icons also get a soft highlight colour while hovered or pressed */
 @media (hover: hover) {
   .icon-btn:hover {
-    transform: scale(1.15);
     background: var(--tint);
   }
 }
 
-/* Finger press (phone) or click: squish */
 .icon-btn:active {
-  transform: scale(0.9);
   background: var(--tint);
-  opacity: 1; /* don't also fade like other buttons */
 }
 
 /* Back arrow sits at the top-left, a bit smaller and without a background */
@@ -738,6 +758,88 @@ textarea:focus {
   height: 44px;
   margin-left: -8px;
   background: none;
+}
+
+/* ---- Bottom navigation bar (Home | Stats), like stock Android ---- */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--card);
+}
+
+.bottom-nav[hidden] {
+  display: none;
+}
+
+/* Leave room at the bottom of each screen so the bar never covers content */
+body.nav-visible .screen {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
+.nav-item {
+  --grow: 1.08;
+  flex: 1;
+  max-width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* The rounded "pill" behind the icon; filled in for the current tab */
+.nav-pill {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 32px;
+  border-radius: 999px;
+  transition: background-color 0.2s;
+}
+
+.nav-pill svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.nav-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-item.active {
+  color: var(--text);
+}
+
+.nav-item.active .nav-pill {
+  background: var(--tint);
+}
+
+.nav-item.active .nav-label {
+  font-weight: 700;
+}
+
+/* "Focus. Flow. Finish." at the bottom of the home screen */
+.tagline {
+  margin: auto 0 0; /* auto top margin pushes it to the bottom */
+  padding-top: 24px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
 /* Top row of a screen: title on the left, icon on the right */

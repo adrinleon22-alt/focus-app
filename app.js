@@ -364,8 +364,35 @@ let selectedDay = null;
 // Going DEEPER (Home -> History -> Day -> Edit): remember the step in the
 // browser history, so the phone's back gesture can undo it.
 function openView(view) {
-  history.pushState({ view: view }, "");
+  navDepth++;
+  history.pushState({ view: view, depth: navDepth }, "");
   showView(view);
+}
+
+// How many steps deep we are from Home (0 = on Home).
+let navDepth = 0;
+// Set when the Stats tab is tapped from somewhere other than Home:
+// we first go back to Home, then open Stats.
+let openStatsAfterBack = false;
+
+// Bottom bar: jump to the main screen of a tab.
+// Stats is always exactly 1 step from Home, so we can step back to it.
+function goTab(tab) {
+  if (tab === "home") {
+    if (navDepth > 0) history.go(-navDepth);
+    return;
+  }
+  // tab === "stats"
+  if (currentView === "stats") return;
+  const insideStats = ["history", "day", "edit"].includes(currentView);
+  if (insideStats && navDepth > 1) {
+    history.go(-(navDepth - 1)); // back to the Stats screen
+  } else if (navDepth > 0) {
+    openStatsAfterBack = true; // e.g. from the Today screen: Home first
+    history.go(-navDepth);
+  } else {
+    openStats();
+  }
 }
 
 // Going BACK: all Back buttons call this, exactly like the back gesture.
@@ -390,6 +417,16 @@ function render() {
     screens[name].hidden = !!session || currentView !== name;
   }
   timerScreen.hidden = !session;
+
+  // Bottom bar: hidden while the timer runs and on the Edit screen.
+  const showNav = !session && currentView !== "edit";
+  bottomNav.hidden = !showNav;
+  document.body.classList.toggle("nav-visible", showNav);
+  const statsTab = ["stats", "history", "day", "edit"].includes(currentView);
+  navHome.classList.toggle("active", !statsTab);
+  navStats.classList.toggle("active", statsTab);
+  navHome.setAttribute("aria-current", statsTab ? "false" : "page");
+  navStats.setAttribute("aria-current", statsTab ? "page" : "false");
 
   if (!session) {
     const today = sessionsOnDay(data.sessions, localDayKey(new Date()));
@@ -1227,9 +1264,12 @@ pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
 document.getElementById("today-link").addEventListener("click", () => openView("today"));
 document.getElementById("today-back").addEventListener("click", () => goBack());
-document.getElementById("stats-link").addEventListener("click", openStats);
+const bottomNav = document.getElementById("bottom-nav");
+const navHome = document.getElementById("nav-home");
+const navStats = document.getElementById("nav-stats");
+navHome.addEventListener("click", () => goTab("home"));
+navStats.addEventListener("click", () => goTab("stats"));
 allDaysBtn.addEventListener("click", () => openView("history"));
-document.getElementById("stats-back").addEventListener("click", () => goBack());
 document.getElementById("stats-prev").addEventListener("click", () => moveStats(-1));
 statsNext.addEventListener("click", () => moveStats(1));
 tabWeek.addEventListener("click", () => setStatsMode("week"));
@@ -1289,11 +1329,16 @@ window.addEventListener("popstate", (event) => {
     view = "history";
   }
   if (view === "stats" && !statsEndDay) view = "home";
+  navDepth = (event.state && event.state.depth) || 0;
   showView(view);
+  if (openStatsAfterBack && navDepth === 0) {
+    openStatsAfterBack = false;
+    openStats();
+  }
 });
 
 // The app always starts on Home; mark that as the first step in the history.
-history.replaceState({ view: "home" }, "");
+history.replaceState({ view: "home", depth: 0 }, "");
 
 render(); // draw the correct screen on page load (resumes a running session)
 
