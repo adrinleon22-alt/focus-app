@@ -4,14 +4,14 @@
 
 // Name of our storage box for files. Change it when the LIST of files
 // below changes (e.g. a new file is added), so old copies get cleaned up.
-const CACHE_NAME = "telos-files-v6"; // v6: new app icon, opening screen
+const CACHE_NAME = "telos-files-v7"; // v7: always fetch fresh files (fixes mixed versions)
 
 // Everything the app needs to start.
 const APP_FILES = [
   "./",
   "./index.html",
-  "./style.css",
-  "./app.js",
+  "./style.css?v=7",
+  "./app.js?v=7",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -30,7 +30,10 @@ const NETWORK_TIMEOUT_MS = 3000;
 // First install: download all app files into the cache.
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_FILES))
+    caches.open(CACHE_NAME).then((cache) =>
+      // cache: "reload" = download fresh from GitHub, skip the browser's own copy
+      cache.addAll(APP_FILES.map((url) => new Request(url, { cache: "reload" })))
+    )
   );
   self.skipWaiting(); // start using this version straight away
 });
@@ -56,7 +59,11 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
-      const fromNetwork = fetch(event.request).then((response) => {
+      // cache: "no-cache" = check with GitHub every time. GitHub lets browsers reuse
+      // files for 10 minutes, each file separately; right after an update that could
+      // mix a NEW page with an OLD stylesheet and scramble the layout.
+      // (We fetch by address: browsers don't allow adding options to a page-navigation request.)
+      const fromNetwork = fetch(event.request.url, { cache: "no-cache" }).then((response) => {
         if (response.ok) cache.put(event.request, response.clone());
         return response;
       });
