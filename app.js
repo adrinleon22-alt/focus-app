@@ -19,10 +19,17 @@ function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+// Make a unique id for a saved session, e.g. "lq3k9x2a-4f8h1".
+// (We don't use crypto.randomUUID() because it doesn't work when the
+// page is opened over plain http on the local network.)
+function makeId() {
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+}
+
 // =====================================================================
 // TIMER
 // The running session looks like this while active:
-//   { task, start, pausedMs, pausedAt }
+//   { task, subject, start, pausedMs, pausedAt }
 //   start    = when Start was tapped (ISO time string)
 //   pausedMs = total milliseconds spent paused so far
 //   pausedAt = when the current pause began, or null if not paused
@@ -55,12 +62,15 @@ function startSession() {
   const data = loadData();
   data.activeSession = {
     task: task,
+    subject: subjectInput.value.trim(), // empty string if not filled in
     start: new Date().toISOString(),
     pausedMs: 0,
     pausedAt: null,
   };
   saveData(data); // save immediately so a refresh loses nothing
   taskInput.value = "";
+  subjectInput.value = "";
+  savedMessageText = ""; // hide the old "Saved" message
   render();
 }
 
@@ -84,10 +94,48 @@ function togglePause() {
 
 function stopSession() {
   const data = loadData();
-  // Step 2: just clear the running session. Saving it comes in step 3.
+  const session = data.activeSession;
+  if (!session) return;
+
+  const now = Date.now();
+  let pausedMs = session.pausedMs;
+  // Stopped while paused: the current pause also counts as paused time.
+  if (session.pausedAt) {
+    pausedMs += now - Date.parse(session.pausedAt);
+  }
+
+  // The finished session, in the shape described in PLAN.md.
+  const finished = {
+    id: makeId(),
+    task: session.task,
+    subject: session.subject || "",
+    start: session.start,
+    end: new Date(now).toISOString(),
+    pausedMs: pausedMs,
+  };
+
+  data.sessions.push(finished);
   data.activeSession = null;
-  saveData(data);
+  saveData(data); // session saved and timer cleared in one write
+
+  const duration = now - Date.parse(finished.start) - finished.pausedMs;
+  savedMessageText = "Saved: " + finished.task + " – " + formatDuration(duration);
   render();
+}
+
+// The last few different tasks, newest first, for the quick-pick buttons.
+function getRecentTasks(sessions, howMany) {
+  const recent = [];
+  const seen = new Set();
+  // Walk the sessions from newest to oldest.
+  for (let i = sessions.length - 1; i >= 0 && recent.length < howMany; i--) {
+    const s = sessions[i];
+    if (!seen.has(s.task)) {
+      seen.add(s.task);
+      recent.push({ task: s.task, subject: s.subject });
+    }
+  }
+  return recent;
 }
 
 // =====================================================================
@@ -101,18 +149,53 @@ const timerTask = document.getElementById("timer-task");
 const timerDisplay = document.getElementById("timer-display");
 const timerStatus = document.getElementById("timer-status");
 const pauseBtn = document.getElementById("pause-btn");
+const subjectInput = document.getElementById("subject-input");
+const recentTasksBox = document.getElementById("recent-tasks");
+const savedMessage = document.getElementById("saved-message");
+
+// Text of the "Saved: ..." message. Not stored, so it's gone after a reload.
+let savedMessageText = "";
 
 // Show the right screen for the current state.
 function render() {
-  const session = loadData().activeSession;
+  const data = loadData();
+  const session = data.activeSession;
   homeScreen.hidden = !!session;
   timerScreen.hidden = !session;
+
+  if (!session) {
+    savedMessage.textContent = savedMessageText;
+    savedMessage.hidden = !savedMessageText;
+    renderRecentTasks(data.sessions);
+  }
 
   if (session) {
     timerTask.textContent = session.task;
     pauseBtn.textContent = session.pausedAt ? "Resume" : "Pause";
     timerStatus.textContent = session.pausedAt ? "Paused" : "";
     updateTimerDisplay();
+  }
+}
+
+// Draw one button per recent task. Tapping it fills in task + subject.
+function renderRecentTasks(sessions) {
+  recentTasksBox.innerHTML = ""; // remove the old buttons
+  for (const item of getRecentTasks(sessions, 5)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    // textContent (not innerHTML) so task names are always shown as plain text
+    btn.textContent = item.task;
+    if (item.subject) {
+      const tag = document.createElement("span");
+      tag.className = "subject";
+      tag.textContent = " · " + item.subject;
+      btn.appendChild(tag);
+    }
+    btn.addEventListener("click", () => {
+      taskInput.value = item.task;
+      subjectInput.value = item.subject || "";
+    });
+    recentTasksBox.appendChild(btn);
   }
 }
 
@@ -132,10 +215,12 @@ document.getElementById("start-btn").addEventListener("click", startSession);
 pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
 
-// Pressing Enter in the task box also starts.
-taskInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") startSession();
-});
+// Pressing Enter in either box also starts.
+for (const input of [taskInput, subjectInput]) {
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") startSession();
+  });
+}
 
 // Update every 250ms. Ticking more often than once a second keeps the
 // display from lagging behind; it does NOT affect accuracy.

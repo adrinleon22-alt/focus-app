@@ -13,8 +13,19 @@
   <!-- Screen 1: Home. Type a task and start. -->
   <main id="home-screen" class="screen">
     <h1>Study Tracker</h1>
+
+    <!-- Shown briefly after Stop, e.g. "Saved: Statistik Blatt 3 – 0:42:10" -->
+    <p id="saved-message" class="saved-message" hidden></p>
+
     <label for="task-input">What are you working on?</label>
     <input id="task-input" type="text" placeholder="e.g. Statistik Blatt 3" autocomplete="off">
+
+    <label for="subject-input">Subject (optional)</label>
+    <input id="subject-input" type="text" placeholder="e.g. Statistik" autocomplete="off">
+
+    <!-- Buttons for recent tasks get added here by app.js -->
+    <div id="recent-tasks" class="recent-tasks"></div>
+
     <button id="start-btn" class="big-btn primary">Start</button>
   </main>
 

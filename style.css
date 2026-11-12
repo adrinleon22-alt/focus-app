@@ -62,6 +62,36 @@ input[type="text"] {
   color: var(--text);
 }
 
+/* Confirmation after Stop */
+.saved-message {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--btn-bg);
+}
+
+/* Recent task buttons: small pills that wrap onto new lines */
+.recent-tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recent-tasks button {
+  font-size: 16px;
+  padding: 10px 14px;
+  min-height: 44px; /* big enough to hit with a thumb */
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.recent-tasks .subject {
+  color: var(--muted);
+}
+
 /* Big, thumb-friendly buttons */
 .big-btn {
   font-size: 22px;
