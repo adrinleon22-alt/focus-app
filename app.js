@@ -1787,6 +1787,33 @@ document.addEventListener("visibilitychange", () => {
   render();
 });
 
+// ---- "Focus. Flow. Finish." wave ----
+// Split the tagline into one <span> per letter, numbered 0, 1, 2, ...
+// The CSS animation delays each letter by its number, which makes the wave.
+const tagline = document.getElementById("tagline");
+const taglineText = tagline.textContent;
+tagline.textContent = "";
+[...taglineText].forEach((char, i) => {
+  const span = document.createElement("span");
+  span.className = "ch";
+  span.style.setProperty("--i", i);
+  span.setAttribute("aria-hidden", "true"); // screen readers read the label instead
+  span.textContent = char;
+  tagline.appendChild(span);
+});
+
+function startWave() {
+  if (tagline.classList.contains("waving")) return; // let the current wave finish
+  tagline.classList.add("waving");
+}
+
+// When the LAST letter has finished hopping, the wave is over and can run again.
+if (tagline.lastChild) {
+  tagline.lastChild.addEventListener("animationend", () => tagline.classList.remove("waving"));
+}
+tagline.addEventListener("pointerenter", startWave); // mouse moves over it
+tagline.addEventListener("pointerdown", startWave); // finger or click
+
 // Stopwatch / Timer switch and the study-time box
 modeStopwatch.addEventListener("click", () => setMode("stopwatch"));
 modeTimer.addEventListener("click", () => setMode("timer"));

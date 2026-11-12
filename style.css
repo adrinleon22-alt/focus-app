@@ -1059,6 +1059,37 @@ body.on-break .big-btn:not(.danger) {
   background: var(--bg);
 }
 
+/* ---- Tagline wave: each letter hops up a moment after the one before ---- */
+.tagline {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tagline .ch {
+  display: inline-block; /* letters must be blocks to move up and down */
+  white-space: pre; /* keep the spaces between words */
+}
+
+.tagline.waving .ch {
+  animation: wave 0.7s ease-in-out;
+  animation-delay: calc(var(--i) * 35ms); /* --i = letter number: 0, 1, 2, ... */
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-9px); }
+  60% { transform: translateY(2px); }
+}
+
+/* People who turned on "reduce motion" on their phone get no wave */
+@media (prefers-reduced-motion: reduce) {
+  .tagline.waving .ch {
+    animation: none;
+  }
+}
+
 /* Top row of a screen: title on the left, icon on the right */
 .screen-header {
   display: flex;
