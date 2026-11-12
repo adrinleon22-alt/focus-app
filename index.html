@@ -12,8 +12,8 @@
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
   <!-- Colour of the phone's status bar / app switcher: matches light or dark mode -->
-  <meta name="theme-color" content="#F4FAFB" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0D1517" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <!-- iPhone: home-screen icon, full screen, and the name under the icon -->
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -110,7 +110,7 @@
     <!-- Month view: calendar with a goal ring on each day, drawn by app.js -->
     <div id="stats-month" hidden>
       <div id="stats-calendar" class="calendar"></div>
-      <p class="chart-legend muted small">✓ goal reached · red = missed · blue = today</p>
+      <p class="chart-legend muted small">✓ goal reached · red = missed · plain ring = today</p>
     </div>
 
     <!-- What the tapped day was spent on -->
