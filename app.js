@@ -1786,7 +1786,7 @@ function exportBackup() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "studytracker-backup-" + localDayKey(new Date()) + ".json";
+  link.download = "telos-backup-" + localDayKey(new Date()) + ".json";
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -1822,7 +1822,7 @@ async function importBackup(file) {
 
   const sessions = parsed && parsed.sessions;
   if (!Array.isArray(sessions) || !sessions.every(isValidSession)) {
-    showBackupMessage("That doesn't look like a Study Tracker backup. Nothing was changed.");
+    showBackupMessage("That doesn't look like a Telos backup. Nothing was changed.");
     return;
   }
 
@@ -2023,6 +2023,44 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && session && session.mode === "timer") keepScreenOn();
   render();
 });
+
+// ---- Opening animation of the app name ----
+// Types "τέλος" (Greek: the goal, the end you work towards), erases it
+// letter by letter, then types "Telos", which stays. Runs once per app start.
+const appTitle = document.getElementById("app-title");
+const appTitleText = appTitle.querySelector(".tw-text");
+
+function playTitleIntro() {
+  const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (calm) return; // "reduce motion": just show "Telos"
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const typeWord = async (word, msPerLetter) => {
+    for (const letter of word) {
+      appTitleText.textContent += letter;
+      await wait(msPerLetter);
+    }
+  };
+  const eraseWord = async (msPerLetter) => {
+    while (appTitleText.textContent.length) {
+      appTitleText.textContent = appTitleText.textContent.slice(0, -1); // backspace
+      await wait(msPerLetter);
+    }
+  };
+  (async () => {
+    appTitle.classList.add("typing");
+    appTitleText.textContent = "";
+    await wait(400);
+    await typeWord("τέλος", 140);
+    await wait(900); // let it sink in
+    await eraseWord(80);
+    await wait(300);
+    await typeWord("Telos", 140);
+    await wait(1200); // cursor blinks a moment
+    appTitle.classList.remove("typing");
+    appTitle.classList.add("typed"); // cursor fades away, "Telos" stays
+  })();
+}
+playTitleIntro();
 
 // ---- "Focus. Flow. Finish." wave ----
 // Split the tagline into one <span> per letter, numbered 0, 1, 2, ...

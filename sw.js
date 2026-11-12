@@ -4,7 +4,7 @@
 
 // Name of our storage box for files. Change it when the LIST of files
 // below changes (e.g. a new file is added), so old copies get cleaned up.
-const CACHE_NAME = "studytracker-files-v4"; // v4: Manrope for the clock digits
+const CACHE_NAME = "telos-files-v5"; // v5: renamed to Telos, Greek letters
 
 // Everything the app needs to start.
 const APP_FILES = [
@@ -19,6 +19,7 @@ const APP_FILES = [
   "./fonts/inter-latin.woff2",
   "./fonts/inter-latin-ext.woff2",
   "./fonts/manrope-extrabold-latin.woff2",
+  "./fonts/inter-greek.woff2",
 ];
 
 // How long to wait for the network before using the saved copy instead.

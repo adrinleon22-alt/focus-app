@@ -16,6 +16,15 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Greek letters (for "τέλος" in the opening animation) */
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/inter-greek.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+
 /* Manrope ExtraBold: only for the big clock digits (timer and stopwatch).
    Licence: fonts/OFL-Manrope.txt (free to use). */
 @font-face {
@@ -1118,6 +1127,39 @@ body.on-break .wave {
 
 @media (prefers-reduced-motion: reduce) {
   .wave { animation: none; }
+}
+
+/* ---- App name with the typewriter intro ---- */
+.app-title {
+  min-height: 1.2em; /* keeps the page from jumping while letters come and go */
+}
+
+/* The blinking typing cursor after the letters */
+.tw-caret {
+  display: inline-block;
+  width: 3px;
+  height: 0.9em;
+  margin-left: 3px;
+  vertical-align: -0.08em;
+  background: currentColor;
+  border-radius: 2px;
+  opacity: 0; /* only visible during the intro */
+}
+
+.app-title.typing .tw-caret {
+  opacity: 1;
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+
+/* At the end the cursor fades out */
+.app-title.typed .tw-caret {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
 /* ---- Title box with the light bulb ---- */

@@ -1,6 +1,6 @@
 {
-  "name": "Study Tracker",
-  "short_name": "Study",
+  "name": "Telos",
+  "short_name": "Telos",
   "description": "Tracks how much time I spend studying, per day and per task.",
   "start_url": "./",
   "scope": "./",
