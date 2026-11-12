@@ -139,6 +139,50 @@ function getRecentTasks(sessions, howMany) {
 }
 
 // =====================================================================
+// TOTALS (used by the Today screen, and later by History)
+// =====================================================================
+
+// Work time of one saved session.
+function sessionDuration(s) {
+  return Date.parse(s.end) - Date.parse(s.start) - s.pausedMs;
+}
+
+// The LOCAL calendar day of a moment, as "2026-11-12".
+// getFullYear/getMonth/getDate use the phone's own time zone (Berlin),
+// not UTC. That's why we don't just cut the ISO string.
+function localDayKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0"); // months start at 0
+  const d = String(date.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + d;
+}
+
+// Sessions that STARTED on the given local day. A session from
+// 23:30 to 00:30 counts fully for the day it started (option A).
+function sessionsOnDay(sessions, dayKey) {
+  return sessions.filter((s) => localDayKey(new Date(s.start)) === dayKey);
+}
+
+// Add up sessions with the same task name.
+// Returns [{ task, subject, ms }], most time first.
+function totalsByTask(sessions) {
+  const byTask = new Map();
+  for (const s of sessions) {
+    if (!byTask.has(s.task)) {
+      byTask.set(s.task, { task: s.task, subject: s.subject, ms: 0 });
+    }
+    const entry = byTask.get(s.task);
+    entry.ms += sessionDuration(s);
+    if (s.subject) entry.subject = s.subject; // keep the latest subject used
+  }
+  return [...byTask.values()].sort((a, b) => b.ms - a.ms);
+}
+
+function sumDurations(sessions) {
+  return sessions.reduce((total, s) => total + sessionDuration(s), 0);
+}
+
+// =====================================================================
 // SCREENS
 // =====================================================================
 
@@ -153,20 +197,43 @@ const subjectInput = document.getElementById("subject-input");
 const recentTasksBox = document.getElementById("recent-tasks");
 const savedMessage = document.getElementById("saved-message");
 
+const todayScreen = document.getElementById("today-screen");
+const homeTodayTotal = document.getElementById("home-today-total");
+const todayTotal = document.getElementById("today-total");
+const todayEmpty = document.getElementById("today-empty");
+const todayList = document.getElementById("today-list");
+
 // Text of the "Saved: ..." message. Not stored, so it's gone after a reload.
 let savedMessageText = "";
+
+// Which screen to show when no timer is running: "home" or "today".
+// (While a session runs, the timer screen always wins.)
+let currentView = "home";
+
+function showView(view) {
+  currentView = view;
+  window.scrollTo(0, 0);
+  render();
+}
 
 // Show the right screen for the current state.
 function render() {
   const data = loadData();
   const session = data.activeSession;
-  homeScreen.hidden = !!session;
+  homeScreen.hidden = !!session || currentView !== "home";
+  todayScreen.hidden = !!session || currentView !== "today";
   timerScreen.hidden = !session;
 
   if (!session) {
-    savedMessage.textContent = savedMessageText;
-    savedMessage.hidden = !savedMessageText;
-    renderRecentTasks(data.sessions);
+    const today = sessionsOnDay(data.sessions, localDayKey(new Date()));
+    if (currentView === "home") {
+      homeTodayTotal.textContent = formatDuration(sumDurations(today));
+      savedMessage.textContent = savedMessageText;
+      savedMessage.hidden = !savedMessageText;
+      renderRecentTasks(data.sessions);
+    } else if (currentView === "today") {
+      renderToday(today);
+    }
   }
 
   if (session) {
@@ -174,6 +241,33 @@ function render() {
     pauseBtn.textContent = session.pausedAt ? "Resume" : "Pause";
     timerStatus.textContent = session.pausedAt ? "Paused" : "";
     updateTimerDisplay();
+  }
+}
+
+// Fill the Today screen: big total plus one row per task.
+function renderToday(todaySessions) {
+  todayTotal.textContent = formatDuration(sumDurations(todaySessions));
+  todayEmpty.hidden = todaySessions.length > 0;
+  todayList.innerHTML = ""; // remove the old rows
+
+  for (const item of totalsByTask(todaySessions)) {
+    const li = document.createElement("li");
+
+    const name = document.createElement("span");
+    name.textContent = item.task;
+    if (item.subject) {
+      const tag = document.createElement("span");
+      tag.className = "muted";
+      tag.textContent = " · " + item.subject;
+      name.appendChild(tag);
+    }
+
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = formatDuration(item.ms);
+
+    li.append(name, time);
+    todayList.appendChild(li);
   }
 }
 
@@ -214,6 +308,8 @@ function updateTimerDisplay() {
 document.getElementById("start-btn").addEventListener("click", startSession);
 pauseBtn.addEventListener("click", togglePause);
 document.getElementById("stop-btn").addEventListener("click", stopSession);
+document.getElementById("today-link").addEventListener("click", () => showView("today"));
+document.getElementById("today-back").addEventListener("click", () => showView("home"));
 
 // Pressing Enter in either box also starts.
 for (const input of [taskInput, subjectInput]) {

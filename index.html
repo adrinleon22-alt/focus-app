@@ -14,6 +14,11 @@
   <main id="home-screen" class="screen">
     <h1>Study Tracker</h1>
 
+    <!-- Today's total. Tapping it opens the Today screen. -->
+    <button id="today-link" class="today-link" type="button">
+      Today: <strong id="home-today-total">0:00:00</strong> ›
+    </button>
+
     <!-- Shown briefly after Stop, e.g. "Saved: Statistik Blatt 3 – 0:42:10" -->
     <p id="saved-message" class="saved-message" hidden></p>
 
@@ -27,6 +32,16 @@
     <div id="recent-tasks" class="recent-tasks"></div>
 
     <button id="start-btn" class="big-btn primary">Start</button>
+  </main>
+
+  <!-- Screen 3: Today. Total plus time per task. -->
+  <main id="today-screen" class="screen" hidden>
+    <button id="today-back" class="back-btn" type="button">‹ Back</button>
+    <h1>Today</h1>
+    <p id="today-total" class="today-total">0:00:00</p>
+    <p id="today-empty" class="muted" hidden>Nothing tracked today yet.</p>
+    <!-- One row per task gets added here by app.js -->
+    <ul id="today-list" class="task-list"></ul>
   </main>
 
   <!-- Screen 2: Running timer. "hidden" means it is not shown until JavaScript shows it. -->
