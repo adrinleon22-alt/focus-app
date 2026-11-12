@@ -792,9 +792,11 @@ textarea:focus {
   z-index: 10;
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: var(--card);
+  gap: 72px; /* the space between the two icons */
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  /* Same colour as the page (no visible bar), fading out upwards so
+     content scrolling underneath slides away softly behind the icons */
+  background: linear-gradient(to top, var(--bg) 65%, transparent);
 }
 
 .bottom-nav[hidden] {
@@ -807,9 +809,8 @@ body.nav-visible .screen {
 }
 
 .nav-item {
-  --grow: 1.08;
-  flex: 1;
-  max-width: 160px;
+  --grow: 1.3; /* bigger pop on hover than other buttons */
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -825,33 +826,29 @@ body.nav-visible .screen {
 .nav-pill {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 32px;
-  border-radius: 999px;
-  transition: background-color 0.2s;
+  width: 48px; /* big enough to tap comfortably */
+  height: 48px;
 }
 
 .nav-pill svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   fill: currentColor;
 }
 
+/* The words "Home" / "Stats" are hidden from view, but screen readers still read them */
 .nav-label {
-  font-size: 12px;
-  font-weight: 500;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
+/* Current tab: full black (white in dark mode); the other one stays grey */
 .nav-item.active {
   color: var(--text);
-}
-
-.nav-item.active .nav-pill {
-  background: var(--tint);
-}
-
-.nav-item.active .nav-label {
-  font-weight: 700;
 }
 
 /* "Focus. Flow. Finish." at the bottom of the home screen */
