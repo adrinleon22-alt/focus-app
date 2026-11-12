@@ -17,6 +17,8 @@ function loadData() {
   if (!Array.isArray(data.goals) || data.goals.length === 0) {
     data.goals = [{ from: "", minutes: DEFAULT_GOAL_MINUTES }];
   }
+  // Remembered choices: Stopwatch or Timer, and the last study time used.
+  data.settings = Object.assign({ mode: "stopwatch", timerMinutes: 120 }, data.settings);
   return data;
 }
 
@@ -59,6 +61,212 @@ function formatDuration(ms) {
   return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+// =====================================================================
+// TIMER MODE: count down a planned study time, with breaks in between.
+//
+// Planning (based on the research we looked at):
+//  - focus blocks between 25 and 90 minutes, recommended ~45 minutes
+//  - break length depends on the block: up to 30 min -> 5 min break,
+//    up to 60 min -> 10 min, longer -> 15 min
+//  - the study time you type is FOCUS time; breaks come on top
+//
+// While running, the active session looks like this:
+//   { mode: "timer", task, plan: { focus: [40, 40, 40], breakMin: 10 },
+//     phase,       // 0 = focus 1, 1 = break, 2 = focus 2, ...
+//     start,       // when the CURRENT phase started
+//     pausedMs, pausedAt,   // pause info for the current phase
+//     studiedMs,   // focus time already saved
+//     savedIds }   // ids of the focus blocks saved so far
+// Every finished focus block is saved as its own session.
+// =====================================================================
+
+const MIN_BLOCK = 25; // shortest focus block we suggest
+const MAX_BLOCK = 90; // longest focus block we suggest
+const IDEAL_BLOCK = 45; // what the recommended option aims for
+
+// Break length for a focus block of this many minutes.
+function breakFor(blockMinutes) {
+  if (blockMinutes <= 30) return 5;
+  if (blockMinutes <= 60) return 10;
+  return 15;
+}
+
+// Split minutes into equal whole-minute parts, e.g. 100 into 3 -> [34, 33, 33]
+function splitMinutes(total, parts) {
+  const base = Math.floor(total / parts);
+  const extra = total - base * parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+// All sensible plans for a study time, e.g. 120 -> 1, 2 (recommended) or 3 breaks.
+// Returns [{ breaks, focus: [..minutes], breakMin, totalMin, recommended }]
+function planOptions(studyMinutes) {
+  const minBreaks = Math.max(0, Math.ceil(studyMinutes / MAX_BLOCK) - 1);
+  const maxBreaks = Math.max(minBreaks, Math.floor(studyMinutes / MIN_BLOCK) - 1);
+  const recBreaks = Math.min(maxBreaks, Math.max(minBreaks, Math.round(studyMinutes / IDEAL_BLOCK) - 1));
+  // Show at most 5 options, centred on the recommended one
+  const from = Math.max(minBreaks, Math.min(recBreaks - 2, maxBreaks - 4));
+  const to = Math.min(maxBreaks, from + 4);
+  const options = [];
+  for (let n = from; n <= to; n++) {
+    const focus = splitMinutes(studyMinutes, n + 1);
+    const breakMin = n === 0 ? 0 : breakFor(Math.max(...focus));
+    options.push({ breaks: n, focus, breakMin, totalMin: studyMinutes + n * breakMin, recommended: n === recBreaks });
+  }
+  return options;
+}
+
+// The plan as a list of phases: focus, break, focus, break, ..., focus
+function phasesOf(plan) {
+  const phases = [];
+  plan.focus.forEach((min, i) => {
+    if (i > 0) phases.push({ type: "break", min: plan.breakMin });
+    phases.push({ type: "focus", min: min, number: i + 1 });
+  });
+  return phases;
+}
+
+// Move a running timer forward through every phase that has already ended
+// (also catches up if the app was closed or the phone was asleep).
+// Changes `data` in place. Returns { changed, finished }.
+function advanceTimer(data) {
+  const t = data.activeSession;
+  const phases = phasesOf(t.plan);
+  let changed = false;
+  while (!t.pausedAt && t.phase < phases.length) {
+    const phase = phases[t.phase];
+    const endsAt = Date.parse(t.start) + phase.min * 60000 + t.pausedMs;
+    if (Date.now() < endsAt) break; // current phase still running
+    if (phase.type === "focus") {
+      // Save the finished focus block with its real start and end time
+      const block = {
+        id: makeId(), task: t.task, subject: "",
+        start: t.start, end: new Date(endsAt).toISOString(),
+        pausedMs: t.pausedMs, note: "",
+      };
+      data.sessions.push(block);
+      t.savedIds.push(block.id);
+      t.studiedMs += phase.min * 60000;
+    }
+    t.phase++;
+    t.start = new Date(endsAt).toISOString(); // next phase starts right away
+    t.pausedMs = 0;
+    changed = true;
+  }
+  return { changed: changed, finished: t.phase >= phases.length };
+}
+
+// ---- Beep + vibrate when a phase changes, and keep the screen on ----
+let audioCtx = null;
+let wakeLock = null;
+
+// Browsers only allow sound after a tap, so this runs when Start is tapped.
+function unlockSound() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  } catch (error) { /* no sound available: fine */ }
+}
+
+// Two short beeps and a vibration.
+function signal() {
+  try {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if (!audioCtx) return;
+    [0, 0.25].forEach((delay) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = 880; // a clear "A" tone
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.18);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + 0.2);
+    });
+  } catch (error) { /* ignore */ }
+}
+
+// Ask the phone to keep the screen on while the timer runs (where supported).
+async function keepScreenOn() {
+  try {
+    if ("wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    }
+  } catch (error) { /* not supported or not allowed: fine */ }
+}
+
+function allowScreenOff() {
+  if (wakeLock) wakeLock.release();
+  wakeLock = null;
+}
+
+// The timer finished all its blocks: show the summary and the note box.
+function finishTimer(data) {
+  const t = data.activeSession;
+  data.activeSession = null;
+  saveData(data);
+  allowScreenOff();
+  signal();
+  openNoteCard(t.savedIds[t.savedIds.length - 1],
+    "Done: " + t.task + " – " + formatDuration(t.studiedMs) + " in " + t.savedIds.length +
+    (t.savedIds.length === 1 ? " block" : " blocks"));
+  render();
+}
+
+// ---- Home screen: Stopwatch / Timer choice and the break options ----
+let chosenBreaks = null; // null = use the recommended option
+
+function setMode(mode) {
+  const data = loadData();
+  data.settings.mode = mode;
+  saveData(data);
+  render();
+}
+
+// Study minutes typed in the box (or the saved value if the box is empty/invalid)
+function typedStudyMinutes() {
+  const n = Math.round(Number(timerMinutesInput.value));
+  return n >= 10 && n <= 600 ? n : null;
+}
+
+function renderPlanOptions() {
+  planOptionsBox.innerHTML = ""; // remove the old options
+  const minutes = typedStudyMinutes();
+  if (!minutes) {
+    const hint = document.createElement("p");
+    hint.className = "muted small";
+    hint.textContent = "Enter between 10 and 600 minutes.";
+    planOptionsBox.appendChild(hint);
+    return;
+  }
+  const options = planOptions(minutes);
+  const chosen = options.find((o) => o.breaks === chosenBreaks) || options.find((o) => o.recommended);
+  for (const o of options) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "plan-option" + (o === chosen ? " chosen" : "");
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", o === chosen ? "true" : "false");
+    const title = document.createElement("span");
+    title.className = "plan-title";
+    title.textContent = (o.breaks === 0 ? "No breaks" : o.breaks + (o.breaks === 1 ? " break" : " breaks")) +
+      (o.recommended ? "  ⭐ recommended" : "");
+    const detail = document.createElement("span");
+    detail.className = "plan-detail";
+    const sameLength = o.focus.every((m) => m === o.focus[0]);
+    const blocks = sameLength ? o.focus.length + " × " + o.focus[0] + " min" : o.focus.join(" + ") + " min";
+    detail.textContent = blocks + (o.breaks ? " · " + o.breakMin + " min breaks" : "") +
+      " · " + formatAxisMinutes(o.totalMin) + " total";
+    btn.append(title, detail);
+    btn.addEventListener("click", () => {
+      chosenBreaks = o.breaks;
+      renderPlanOptions();
+    });
+    planOptionsBox.appendChild(btn);
+  }
+}
+
 function startSession() {
   const task = taskInput.value.trim();
   if (!task) {
@@ -66,12 +274,28 @@ function startSession() {
     return;
   }
   const data = loadData();
-  data.activeSession = {
-    task: task,
-    start: new Date().toISOString(),
-    pausedMs: 0,
-    pausedAt: null,
-  };
+  const now = new Date().toISOString();
+
+  if (data.settings.mode === "timer") {
+    const minutes = typedStudyMinutes();
+    if (!minutes) {
+      timerMinutesInput.focus();
+      return;
+    }
+    const options = planOptions(minutes);
+    const plan = options.find((o) => o.breaks === chosenBreaks) || options.find((o) => o.recommended);
+    data.settings.timerMinutes = minutes; // remember for next time
+    data.activeSession = {
+      mode: "timer", task: task,
+      plan: { focus: plan.focus, breakMin: plan.breakMin },
+      phase: 0, start: now, pausedMs: 0, pausedAt: null,
+      studiedMs: 0, savedIds: [],
+    };
+    unlockSound();
+    keepScreenOn();
+  } else {
+    data.activeSession = { task: task, start: now, pausedMs: 0, pausedAt: null };
+  }
   saveData(data); // save immediately so a refresh loses nothing
   taskInput.value = "";
   closeNoteCard(); // hide the last "Saved / what did you get done?" card
@@ -101,6 +325,11 @@ function stopSession() {
   const session = data.activeSession;
   if (!session) return;
 
+  if (session.mode === "timer") {
+    stopTimerEarly(data);
+    return;
+  }
+
   const now = Date.now();
   let pausedMs = session.pausedMs;
   // Stopped while paused: the current pause also counts as paused time.
@@ -128,6 +357,42 @@ function stopSession() {
   const duration = now - Date.parse(finished.start) - finished.pausedMs;
   openNoteCard(finished.id, "Saved: " + finished.task + " – " + formatDuration(duration));
   render();
+}
+
+// Stop pressed in Timer mode: save the blocks that ended, plus the part of
+// the current focus block done so far. A break that's cut short adds nothing.
+function stopTimerEarly(data) {
+  advanceTimer(data); // first save anything that already finished
+  const t = data.activeSession;
+  const phases = phasesOf(t.plan);
+  const phase = phases[t.phase];
+  if (phase && phase.type === "focus") {
+    const now = Date.now();
+    const end = t.pausedAt ? Date.parse(t.pausedAt) : now;
+    const pausedMs = t.pausedMs + (t.pausedAt ? now - Date.parse(t.pausedAt) : 0);
+    const worked = end - Date.parse(t.start) - t.pausedMs;
+    if (worked >= 1000) { // ignore an accidental tap right after a block started
+      const block = {
+        id: makeId(), task: t.task, subject: "",
+        start: t.start, end: new Date(now).toISOString(),
+        pausedMs: pausedMs, note: "",
+      };
+      data.sessions.push(block);
+      t.savedIds.push(block.id);
+      t.studiedMs += worked;
+    }
+  }
+  if (t.savedIds.length === 0) {
+    // Nothing worth saving
+    data.activeSession = null;
+    saveData(data);
+    allowScreenOff();
+    openNoteCard(null, "Stopped – nothing saved.");
+    noteForm.hidden = true; // no session to attach a note to
+    render();
+    return;
+  }
+  finishTimer(data);
 }
 
 // ---- "What did you get done?" card on the home screen, shown after Stop ----
@@ -326,6 +591,13 @@ const timerDisplay = document.getElementById("timer-display");
 const timerStatus = document.getElementById("timer-status");
 const pauseBtn = document.getElementById("pause-btn");
 const recentTasksBox = document.getElementById("recent-tasks");
+const timerPhase = document.getElementById("timer-phase");
+const timerProgress = document.getElementById("timer-progress");
+const modeStopwatch = document.getElementById("mode-stopwatch");
+const modeTimer = document.getElementById("mode-timer");
+const timerSetup = document.getElementById("timer-setup");
+const timerMinutesInput = document.getElementById("timer-minutes");
+const planOptionsBox = document.getElementById("plan-options");
 const savedMessage = document.getElementById("saved-message");
 const noteCard = document.getElementById("note-card");
 const noteForm = document.getElementById("note-form");
@@ -440,6 +712,7 @@ function render() {
         (todayMs >= goal * 60000 ? " ✓" : "");
       drawRing(homeRing, todayMs / (goal * 60000));
       renderRecentTasks(data.sessions);
+      renderModeChoice(data);
     } else if (currentView === "today") {
       renderToday(today);
     } else if (currentView === "history") {
@@ -458,6 +731,19 @@ function render() {
     timerStatus.textContent = session.pausedAt ? "Paused" : "";
     updateTimerDisplay();
   }
+}
+
+// Home screen bits for Stopwatch / Timer mode.
+function renderModeChoice(data) {
+  const timerMode = data.settings.mode === "timer";
+  modeStopwatch.classList.toggle("active", !timerMode);
+  modeTimer.classList.toggle("active", timerMode);
+  timerSetup.hidden = !timerMode;
+  // Fill in the remembered study time, but never overwrite what you're typing
+  if (timerMode && document.activeElement !== timerMinutesInput && !timerMinutesInput.value) {
+    timerMinutesInput.value = data.settings.timerMinutes;
+  }
+  if (timerMode) renderPlanOptions();
 }
 
 // Fill the Today screen: big total plus one row per task.
@@ -1384,10 +1670,50 @@ function renderRecentTasks(sessions) {
 
 // Redraw just the time. Runs a few times per second.
 function updateTimerDisplay() {
-  const session = loadData().activeSession;
-  if (session) {
+  const data = loadData();
+  const session = data.activeSession;
+  document.body.classList.remove("on-break");
+  timerPhase.hidden = true;
+  timerProgress.hidden = true;
+  if (!session) return;
+
+  if (session.mode !== "timer") {
+    // Stopwatch: count up
     timerDisplay.textContent = formatDuration(elapsedMs(session));
+    return;
   }
+
+  // Timer: first move on if a block or break has ended
+  const result = advanceTimer(data);
+  if (result.changed) {
+    if (result.finished) {
+      finishTimer(data);
+      return;
+    }
+    saveData(data);
+    signal(); // beep + vibrate: next phase started
+    render();
+    return; // render() calls this function again
+  }
+
+  // Count DOWN the current phase
+  const phases = phasesOf(session.plan);
+  const phase = phases[session.phase];
+  const leftMs = phase.min * 60000 - elapsedMs(session);
+  timerDisplay.textContent = formatDuration(leftMs + 999); // round up: show 0:00:01, never 0:00:00 early
+  const blocks = session.plan.focus.length;
+  timerPhase.hidden = false;
+  timerPhase.textContent = phase.type === "focus" ? "Focus " + phase.number + " of " + blocks : "Break";
+  document.body.classList.toggle("on-break", phase.type === "break");
+
+  // Progress line: studied so far, and what comes next
+  const studiedNow = session.studiedMs + (phase.type === "focus" ? elapsedMs(session) : 0);
+  const totalStudy = session.plan.focus.reduce((a, b) => a + b, 0) * 60000;
+  const next = phases[session.phase + 1];
+  const nextText = !next ? "last block" : next.type === "break"
+    ? "next: " + next.min + " min break" : "next: focus " + next.number;
+  timerProgress.hidden = false;
+  timerProgress.textContent = "Studied " + formatDuration(studiedNow) + " of " + formatDuration(totalStudy) + " · " + nextText;
 }
 
 // =====================================================================
@@ -1454,7 +1780,20 @@ document.getElementById("note-skip").addEventListener("click", skipNote);
 setInterval(updateTimerDisplay, 250);
 
 // When you come back to the app (unlock phone, switch apps), redraw at once.
-document.addEventListener("visibilitychange", render);
+// The phone drops "keep screen on" when you leave, so ask again for a running timer.
+document.addEventListener("visibilitychange", () => {
+  const session = loadData().activeSession;
+  if (document.visibilityState === "visible" && session && session.mode === "timer") keepScreenOn();
+  render();
+});
+
+// Stopwatch / Timer switch and the study-time box
+modeStopwatch.addEventListener("click", () => setMode("stopwatch"));
+modeTimer.addEventListener("click", () => setMode("timer"));
+timerMinutesInput.addEventListener("input", () => {
+  chosenBreaks = null; // new study time: start from the recommended option again
+  renderPlanOptions();
+});
 
 // Back gesture / Back button: the browser tells us which step we went back to.
 window.addEventListener("popstate", (event) => {

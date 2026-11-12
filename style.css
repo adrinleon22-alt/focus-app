@@ -966,6 +966,99 @@ body.nav-visible .screen {
   background: var(--bad);
 }
 
+/* ---- Stopwatch | Timer switch and the timer setup on Home ---- */
+.mode-switch {
+  align-self: stretch;
+}
+
+.mode-switch .tab {
+  flex: 1;
+}
+
+.timer-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timer-setup[hidden] {
+  display: none;
+}
+
+/* One option per number of breaks; the chosen one is outlined */
+.plan-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plan-option {
+  --grow: 1.02;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-option.chosen {
+  border-color: var(--primary);
+  background: var(--card);
+}
+
+.plan-title {
+  font-weight: 600;
+}
+
+.plan-detail {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---- Timer screen extras (Timer mode) ---- */
+.timer-phase {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.timer-progress {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* Centre the clock between the top of the screen and the buttons */
+.timer-center {
+  margin: auto 0; /* equal free space above and below */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* During a break the whole screen gets calm: grey background, lighter digits */
+body.on-break {
+  background: var(--card);
+}
+
+body.on-break .timer-display {
+  color: var(--muted);
+}
+
+/* Keep the Pause button visible on the grey break background */
+body.on-break .big-btn:not(.danger) {
+  background: var(--bg);
+}
+
 /* Top row of a screen: title on the left, icon on the right */
 .screen-header {
   display: flex;
@@ -1046,5 +1139,5 @@ body.nav-visible .screen {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: auto; /* push buttons to the bottom of the screen */
+  margin-top: 0; /* the centred clock above pushes the buttons to the bottom */
 }

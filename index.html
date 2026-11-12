@@ -54,6 +54,20 @@
     <!-- Buttons for recent tasks get added here by app.js -->
     <div id="recent-tasks" class="recent-tasks"></div>
 
+    <!-- Stopwatch (counts up) or Timer (counts down, with planned breaks) -->
+    <div class="tabs mode-switch" role="group" aria-label="Mode">
+      <button id="mode-stopwatch" class="tab" type="button">Stopwatch</button>
+      <button id="mode-timer" class="tab" type="button">Timer</button>
+    </div>
+
+    <!-- Only in Timer mode: how long to study, then pick how many breaks -->
+    <div id="timer-setup" class="timer-setup" hidden>
+      <label for="timer-minutes">Study time (minutes, breaks come on top)</label>
+      <input id="timer-minutes" type="number" min="10" max="600" step="5" inputmode="numeric">
+      <!-- The break options get added here by app.js -->
+      <div id="plan-options" class="plan-options" role="radiogroup" aria-label="Breaks"></div>
+    </div>
+
     <button id="start-btn" class="big-btn primary">Start</button>
 
     <!-- Small motto at the bottom of the home screen -->
@@ -214,9 +228,16 @@
 
   <!-- Screen 2: Running timer. "hidden" means it is not shown until JavaScript shows it. -->
   <main id="timer-screen" class="screen timer" hidden>
-    <p id="timer-task" class="timer-task"></p>
-    <p id="timer-display" class="timer-display">0:00:00</p>
-    <p id="timer-status" class="timer-status"></p>
+    <!-- Everything above the buttons, kept in the middle of the screen -->
+    <div class="timer-center">
+      <!-- Timer mode only: "Focus 2 of 3" or "Break" -->
+      <p id="timer-phase" class="timer-phase" hidden></p>
+      <p id="timer-task" class="timer-task"></p>
+      <p id="timer-display" class="timer-display">0:00:00</p>
+      <p id="timer-status" class="timer-status"></p>
+      <!-- Timer mode only: "Studied 0:40:00 of 2:00:00 · next: 10 min break" -->
+      <p id="timer-progress" class="timer-progress" hidden></p>
+    </div>
     <div class="timer-buttons">
       <button id="pause-btn" class="big-btn">Pause</button>
       <button id="stop-btn" class="big-btn danger">Stop</button>
