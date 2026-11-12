@@ -16,6 +16,15 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Manrope ExtraBold: only for the big clock digits (timer and stopwatch).
+   Licence: fonts/OFL-Manrope.txt (free to use). */
+@font-face {
+  font-family: "Manrope";
+  src: url("fonts/manrope-extrabold-latin.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+
 /* Black & white theme, in the spirit of Apple's system colours.
    Only things that MEAN something keep a colour: goal reached (green),
    goal missed (red) and destructive buttons like Stop / Delete (red). */
@@ -1049,8 +1058,8 @@ body.nav-visible .screen {
 
 /* With the dial showing: a big circle, the digits sit in its middle */
 .dial.has-dial {
-  width: min(78vw, 300px);
-  aspect-ratio: 1;
+  width: min(66vw, 250px);
+  aspect-ratio: 200 / 260; /* egg: a bit taller than wide */
 }
 
 .dial-svg {
@@ -1103,7 +1112,8 @@ body.on-break .wave {
 /* Digits inside the dial: a bit smaller so they fit, readable over the water */
 .dial.has-dial .timer-display {
   position: relative; /* above the water */
-  font-size: clamp(40px, 13vw, 54px);
+  font-size: clamp(34px, 11vw, 46px);
+  margin-top: 14%; /* a bit lower, where the egg is widest */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1231,6 +1241,9 @@ body.on-break .big-btn:not(.danger) {
 }
 
 .timer-display {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  font-weight: 800 !important; /* thick, solid digits */
+  letter-spacing: -0.02em;
   font-size: 64px;
   font-weight: 300;
   font-variant-numeric: tabular-nums; /* digits all same width, so the number doesn't wiggle */

@@ -4,7 +4,7 @@
 
 // Name of our storage box for files. Change it when the LIST of files
 // below changes (e.g. a new file is added), so old copies get cleaned up.
-const CACHE_NAME = "studytracker-files-v3"; // v3: Inter font, network-first
+const CACHE_NAME = "studytracker-files-v4"; // v4: Manrope for the clock digits
 
 // Everything the app needs to start.
 const APP_FILES = [
@@ -18,6 +18,7 @@ const APP_FILES = [
   "./icons/apple-touch-icon.png",
   "./fonts/inter-latin.woff2",
   "./fonts/inter-latin-ext.woff2",
+  "./fonts/manrope-extrabold-latin.woff2",
 ];
 
 // How long to wait for the network before using the saved copy instead.
