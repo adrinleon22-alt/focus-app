@@ -2038,6 +2038,55 @@ document.addEventListener("visibilitychange", () => {
   render();
 });
 
+// ---- ☀️/🌙 light/dark switch ----
+// Until you tap it, the app follows the phone. After that your choice is
+// remembered (localStorage "telos-theme") and set on <html data-theme="...">.
+const themeBtn = document.getElementById("theme-btn");
+const themeIcon = themeBtn.querySelector(".theme-icon");
+const systemDark = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+function currentTheme() {
+  const chosen = document.documentElement.getAttribute("data-theme");
+  if (chosen) return chosen;
+  return systemDark && systemDark.matches ? "dark" : "light";
+}
+
+// Show the right emoji, and colour the phone's status bar to match.
+function showTheme() {
+  const theme = currentTheme();
+  themeIcon.textContent = theme === "dark" ? "🌙" : "☀️";
+  themeBtn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  const barColour = theme === "dark" ? "#000000" : "#FFFFFF";
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+    // While the opening screen shows, it keeps the bar dark; it restores "normal" after
+    if (document.getElementById("splash")) meta.dataset.normal = barColour;
+    else meta.setAttribute("content", barColour);
+  });
+}
+
+function toggleTheme() {
+  if (themeBtn.classList.contains("switching")) return; // one switch at a time
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  themeBtn.classList.add("switching");
+  // Swap halfway through the spin, while the emoji is blinked out
+  setTimeout(() => {
+    document.documentElement.classList.add("theme-fading");
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("telos-theme", next); } catch (error) { /* private mode: fine */ }
+    showTheme();
+    render(); // charts and the calendar pick up the new colours
+  }, 270);
+  setTimeout(() => {
+    themeBtn.classList.remove("switching");
+    document.documentElement.classList.remove("theme-fading");
+  }, 650);
+}
+
+themeBtn.addEventListener("click", toggleTheme);
+// If you haven't picked a mode, follow the phone when it switches by itself
+if (systemDark && systemDark.addEventListener) systemDark.addEventListener("change", showTheme);
+showTheme();
+
 // ---- Opening screen ----
 // The icon pops in, "τέλος" (Greek: the goal you work towards) types in,
 // is erased letter by letter, "Telos" types in, and then the whole screen
@@ -2067,7 +2116,7 @@ function finishSplash() {
 function playSplash() {
   // While the dark opening screen shows, make the phone's status bar dark too
   themeColorMetas.forEach((meta) => {
-    meta.dataset.normal = meta.getAttribute("content");
+    meta.dataset.normal = meta.dataset.normal || meta.getAttribute("content"); // keep the light/dark choice
     meta.setAttribute("content", "#0B0B0C");
   });
   splash.addEventListener("click", finishSplash); // tap to skip

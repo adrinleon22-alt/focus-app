@@ -7,14 +7,22 @@
   <!-- Tells the browser this page supports both light and dark mode -->
   <meta name="color-scheme" content="light dark">
   <title>Telos</title>
-  <!-- "?v=11" = version number. Raise it with every release (together with CACHE_NAME
+  <!-- "?v=12" = version number. Raise it with every release (together with CACHE_NAME
        in sw.js): a new address can't come from an old saved copy, so the page,
        its styles and its code always belong to the same version. -->
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
   <!-- Colour of the phone's status bar / app switcher: matches light or dark mode -->
+  <!-- If you picked light or dark with the ☀️/🌙 button, use it right away
+       (before the page is drawn, so there's no flash of the wrong colours). -->
+  <script>
+    try {
+      var savedTheme = localStorage.getItem("telos-theme");
+      if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+    } catch (e) {}
+  </script>
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <!-- iPhone: home-screen icon, full screen, and the name under the icon -->
@@ -36,7 +44,13 @@
   </div>
   <!-- Screen 1: Home. Type a task and start. -->
   <main id="home-screen" class="screen">
-    <h1 class="app-title">Telos</h1>
+    <div class="home-header">
+      <h1 class="app-title">Telos</h1>
+      <!-- Light/dark switch. Shows the current mode; tap to switch. -->
+      <button id="theme-btn" class="theme-btn" type="button" aria-label="Switch to dark mode" title="Switch light/dark">
+        <span class="theme-icon" aria-hidden="true">☀️</span>
+      </button>
+    </div>
 
     <!-- Two columns on laptops/landscape screens: "today" on the left, "start a
          session" on the right. On phones these boxes don't affect the layout. -->
@@ -382,6 +396,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=11" defer></script>
+  <script src="app.js?v=12" defer></script>
 </body>
 </html>

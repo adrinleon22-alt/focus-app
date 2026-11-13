@@ -54,9 +54,11 @@
   --bad: #dc2626;       /* goal missed */
 }
 
-/* If the phone is in dark mode, swap black and white */
+/* Dark mode: when the phone is in dark mode (unless you picked light with the
+   ☀️/🌙 button), or whenever you picked dark with the button.
+   The button sets data-theme="light" or "dark" on <html>. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #000000;
     --card: #1C1C1E;
     --tint: #2C2C2E;
@@ -73,6 +75,27 @@
     --bad: #f05252;
   }
 }
+
+:root[data-theme="dark"] {
+    --bg: #000000;
+    --card: #1C1C1E;
+    --tint: #2C2C2E;
+    --text: #FFFFFF;
+    --muted: #98989D;
+    --border: #38383A;
+    --btn-bg: #1C1C1E;
+    --primary: #FFFFFF;
+    --on-primary: #000000;
+    --chart: #FFFFFF;
+    --danger: #FF453A;
+    --on-danger: #000000;
+    --good: #059669;
+    --bad: #f05252;
+}
+
+/* Built-in form controls (date pickers, tick boxes) follow the chosen mode too */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 /* Include padding in element sizes (makes layout math simpler) */
 * {
@@ -1225,6 +1248,56 @@ body.app-entering .bottom-nav {
   50.01%, 100% { opacity: 0; }
 }
 
+/* ---- ☀️/🌙 light/dark switch (top right of Home) ---- */
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-btn {
+  --grow: 1.2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Tapped: the emoji spins once and blinks out halfway (that's when it swaps) */
+.theme-btn.switching .theme-icon {
+  animation: theme-spin 0.6s ease-in-out;
+}
+
+.theme-icon {
+  display: inline-block;
+}
+
+@keyframes theme-spin {
+  0% { transform: rotate(0deg) scale(1); opacity: 1; }
+  45% { transform: rotate(160deg) scale(0.4); opacity: 0; }
+  55% { transform: rotate(200deg) scale(0.4); opacity: 0; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+/* While switching, every colour fades smoothly instead of jumping */
+html.theme-fading,
+html.theme-fading * {
+  transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease,
+    fill 0.45s ease, stroke 0.45s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-btn.switching .theme-icon { animation: none; }
+}
+
 /* ---- Title box with the light bulb ---- */
 .title-row {
   position: relative;
@@ -1892,7 +1965,7 @@ body.on-break .big-btn:not(.danger) {
     align-content: start;
   }
 
-  #home-screen > .app-title {
+  #home-screen > .home-header {
     grid-column: 1 / -1;
   }
 
