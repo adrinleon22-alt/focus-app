@@ -1941,3 +1941,86 @@ body.on-break .big-btn:not(.danger) {
     max-width: 640px;
   }
 }
+
+/* ---- Today's details on Home: only shown on laptops (see below) ---- */
+.home-today-detail {
+  display: none;
+}
+
+/* ---- Laptops and monitors (1100px+): use the whole screen ---- */
+@media (min-width: 1100px) {
+  /* Every screen (except the centred timer) fills the window width */
+  .screen:not(#timer-screen),
+  #home-screen,
+  #stats-screen,
+  #history-screen,
+  #day-screen {
+    max-width: none;
+    padding-left: 56px;
+    padding-right: 56px;
+  }
+
+  /* Edit stays a comfortable form width */
+  #edit-screen,
+  #today-screen {
+    max-width: 720px;
+  }
+
+  /* Home: both columns stretch; the left one also shows today's details */
+  #home-screen:not([hidden]) {
+    grid-template-columns: minmax(380px, 1fr) minmax(420px, 1fr);
+    column-gap: 64px;
+  }
+
+  .home-today-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 22px 26px;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+  }
+
+  .home-today-detail .small-heading {
+    margin-top: 0;
+  }
+
+  .home-today-detail .notes-list {
+    margin-bottom: 4px;
+  }
+
+  #home-today-empty {
+    margin: 0;
+  }
+
+  /* Stats: wider chart column; charts and calendar grow with the window */
+  .stats-columns {
+    grid-template-columns: 1.5fr 1fr;
+    gap: 56px;
+  }
+
+  .chart svg {
+    max-width: none;
+    max-height: 62vh; /* never taller than the screen */
+  }
+
+  .calendar {
+    max-width: 860px;
+  }
+
+  .cal-cell svg {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* Recent days and All days: as many columns as fit */
+  #recent-days,
+  #history-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
+  /* Day view: a taller timeline */
+  .timeline {
+    height: 74vh;
+  }
+}

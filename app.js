@@ -809,6 +809,10 @@ const todayScreen = document.getElementById("today-screen");
 const homeTodayTotal = document.getElementById("home-today-total");
 const homeTodayLabel = document.getElementById("home-today-label");
 const homeRing = document.getElementById("home-ring");
+const homeTodayEmpty = document.getElementById("home-today-empty");
+const homeTodayList = document.getElementById("home-today-list");
+const homeDone = document.getElementById("home-done");
+const homeDoneList = document.getElementById("home-done-list");
 const todayTotal = document.getElementById("today-total");
 const todayEmpty = document.getElementById("today-empty");
 const todayList = document.getElementById("today-list");
@@ -916,6 +920,10 @@ function render() {
       renderRecentTasks(data.sessions);
       renderModeChoice(data);
       updateBulb();
+      // Laptop/desktop: today's details under the Today card
+      homeTodayEmpty.hidden = today.length > 0;
+      renderTaskTotals(homeTodayList, today);
+      renderDoneList(today, homeDone, homeDoneList);
     } else if (currentView === "today") {
       renderToday(today);
     } else if (currentView === "history") {
@@ -955,6 +963,26 @@ function renderToday(todaySessions) {
   todayTotal.textContent = formatDuration(sumDurations(todaySessions));
   todayEmpty.hidden = todaySessions.length > 0;
   renderTaskTotals(todayList, todaySessions);
+}
+
+// "Done" list: ticked checklist items and notes of these sessions, in time order.
+// wrap = the box to hide when there's nothing to show; list = the <ul> to fill.
+function renderDoneList(sessions, wrap, list) {
+  const lines = [];
+  sessions
+    .slice()
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+    .forEach((s) => {
+      for (const item of s.checklist || []) if (item.done) lines.push("✓ " + item.text);
+      if (s.note) lines.push(s.note);
+    });
+  wrap.hidden = lines.length === 0;
+  list.innerHTML = ""; // remove the old lines
+  for (const line of lines) {
+    const li = document.createElement("li");
+    li.textContent = line; // textContent: always shown as plain text
+    list.appendChild(li);
+  }
 }
 
 // Fill a list with one row per task: "Statistik Blatt 3 · Statistik   1:00:00".
@@ -1564,22 +1592,8 @@ function renderStats(data) {
   statsDayEmpty.hidden = daySessions.length > 0;
   renderTaskTotals(statsDayList, daySessions);
 
-  // "Done": ticked checklist items and notes of that day, in time order.
-  const doneLines = [];
-  daySessions
-    .slice()
-    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
-    .forEach((s) => {
-      for (const item of s.checklist || []) if (item.done) doneLines.push("✓ " + item.text);
-      if (s.note) doneLines.push(s.note);
-    });
-  statsNotes.hidden = doneLines.length === 0;
-  statsNotesList.innerHTML = ""; // remove the old lines
-  for (const line of doneLines) {
-    const li = document.createElement("li");
-    li.textContent = line; // textContent: always shown as plain text
-    statsNotesList.appendChild(li);
-  }
+  // "Done": ticked checklist items and notes of that day
+  renderDoneList(daySessions, statsNotes, statsNotesList);
 
   // Recent days: the last few days with sessions; the rest is behind "Show all days".
   const RECENT_COUNT = 5;
