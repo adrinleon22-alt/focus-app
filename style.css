@@ -1248,7 +1248,7 @@ body.app-entering .bottom-nav {
   50.01%, 100% { opacity: 0; }
 }
 
-/* ---- ☀️/🌙 light/dark switch (top right of Home) ---- */
+/* ---- Sun / moon light-dark switch (top right of Home) ---- */
 .home-header {
   display: flex;
   justify-content: space-between;
@@ -1278,6 +1278,13 @@ body.app-entering .bottom-nav {
 
 .theme-icon {
   display: inline-block;
+  color: var(--text); /* black in light mode, white in dark mode */
+}
+
+.theme-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
 }
 
 @keyframes theme-spin {

@@ -2038,7 +2038,12 @@ document.addEventListener("visibilitychange", () => {
   render();
 });
 
-// ---- ☀️/🌙 light/dark switch ----
+// ---- Sun / moon light-dark switch ----
+// Two black & white line icons (they take the text colour).
+const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+// Crescent: a full circle with a circle cut out on the LEFT, so the lit side
+// is on the right (the mirror image of the 🌙 emoji).
+const MOON_ICON = '<svg viewBox="0 0 24 24"><defs><mask id="moon-cut"><rect width="24" height="24" fill="white"/><circle cx="7.2" cy="9.2" r="7.4" fill="black"/></mask></defs><circle cx="12" cy="12" r="8.5" fill="currentColor" mask="url(#moon-cut)"/></svg>';
 // Until you tap it, the app follows the phone. After that your choice is
 // remembered (localStorage "telos-theme") and set on <html data-theme="...">.
 const themeBtn = document.getElementById("theme-btn");
@@ -2054,7 +2059,7 @@ function currentTheme() {
 // Show the right emoji, and colour the phone's status bar to match.
 function showTheme() {
   const theme = currentTheme();
-  themeIcon.textContent = theme === "dark" ? "🌙" : "☀️";
+  themeIcon.innerHTML = theme === "dark" ? MOON_ICON : SUN_ICON;
   themeBtn.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
   const barColour = theme === "dark" ? "#000000" : "#FFFFFF";
   document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {

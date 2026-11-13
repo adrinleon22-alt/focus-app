@@ -7,10 +7,10 @@
   <!-- Tells the browser this page supports both light and dark mode -->
   <meta name="color-scheme" content="light dark">
   <title>Telos</title>
-  <!-- "?v=12" = version number. Raise it with every release (together with CACHE_NAME
+  <!-- "?v=13" = version number. Raise it with every release (together with CACHE_NAME
        in sw.js): a new address can't come from an old saved copy, so the page,
        its styles and its code always belong to the same version. -->
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
@@ -46,9 +46,9 @@
   <main id="home-screen" class="screen">
     <div class="home-header">
       <h1 class="app-title">Telos</h1>
-      <!-- Light/dark switch. Shows the current mode; tap to switch. -->
+      <!-- Light/dark switch: a sun (light) or a crescent moon (dark), drawn in black & white. -->
       <button id="theme-btn" class="theme-btn" type="button" aria-label="Switch to dark mode" title="Switch light/dark">
-        <span class="theme-icon" aria-hidden="true">☀️</span>
+        <span class="theme-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>
       </button>
     </div>
 
@@ -396,6 +396,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=12" defer></script>
+  <script src="app.js?v=13" defer></script>
 </body>
 </html>
