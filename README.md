@@ -9,7 +9,7 @@ Open it on a phone and choose *Add to Home screen* / *Install app*. It then runs
 
 | Home | Timer | Month & goals |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/home.png" width="240" alt="Home screen with today's total, goal ring and Start button"> | <img src="docs/screenshots/timer.png" width="240" alt="Timer with an egg-shaped dial filling with water, a stick figure peeking above it"> | <img src="docs/screenshots/stats-month.png" width="240" alt="Month calendar where each day has a ring: green with a tick when the goal was reached, red when missed"> |
+| <img src="docs/screenshots/home.png" width="240" alt="Home screen with today's total, goal ring and Start button"> | <img src="docs/screenshots/timer.png" width="240" alt="Timer with a round dial filling with water, a stick figure peeking above it"> | <img src="docs/screenshots/stats-month.png" width="240" alt="Month calendar where each day has a ring: green with a tick when the goal was reached, red when missed"> |
 | **Day timeline** | **Checklist at the end** | **Week (dark mode)** |
 | <img src="docs/screenshots/day.png" width="240" alt="Calendar-style day view with sessions as blocks at their real times"> | <img src="docs/screenshots/checklist.png" width="240" alt="End-of-session card to tick off checklist items and write a note"> | <img src="docs/screenshots/stats-week.png" width="240" alt="Bar chart of the last 7 days with a daily goal line, dark mode"> |
 
@@ -30,7 +30,7 @@ Study apps either track too little ("you studied 3 h") or ask for too much (acco
 - **Backup.** Export and import all data as JSON. Import *merges* by id, so it never loses data and importing twice is harmless.
 - **Responsive:** phone first; on tablets the layout widens with card grids, and on desktop the navigation becomes a side rail and Stats shows chart and day details side by side.
 - **Installable and offline** (PWA). Light and dark mode follow the phone, and the Android back gesture works between screens.
-- **Small delights:** an opening screen with the app icon and a typewriter intro (*τέλος* → *Telos*) that zooms out into the app, an egg-shaped water dial that fills to the brim, a stick figure who peeks, gasps when you pause and salutes when you stop, and "bubbly" buttons.
+- **Small delights:** an opening screen with the app icon and a typewriter intro (*τέλος* → *Telos*) that zooms out into the app, a round water dial that fills to the brim, a stick figure who peeks, gasps when you pause and salutes when you stop, and "bubbly" buttons.
 
 ## Tech stack
 

@@ -1942,12 +1942,12 @@ function updateTimerDisplay() {
   timerDisplay.textContent = formatDuration(leftMs + 999); // round up: show 0:00:01, never 0:00:00 early
 
   // Water dial: the water rises as the phase goes on, full to the brim at the end.
-  // The egg drawing is 260 units tall: 265 = just below the bottom (empty),
+  // The drawing is 200 units tall: 205 = just below the bottom (empty),
   // -8 = above the top (full, so even the wave dips are over the rim).
   const progress = Math.min(1, Math.max(0, elapsedMs(session) / (phase.min * 60000)));
   dialSvg.removeAttribute("hidden");
   dial.classList.add("has-dial");
-  waterLevel.style.transform = "translateY(" + (265 - progress * 273) + "px)";
+  waterLevel.style.transform = "translateY(" + (205 - progress * 213) + "px)";
   const blocks = session.plan.focus.length;
   timerPhase.hidden = false;
   timerPhase.textContent = phase.type === "focus" ? "Focus " + phase.number + " of " + blocks : "Break";

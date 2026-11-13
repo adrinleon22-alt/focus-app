@@ -1065,7 +1065,7 @@ body.nav-visible .screen {
 /* With the dial showing: a big circle, the digits sit in its middle */
 .dial.has-dial {
   width: min(66vw, 250px);
-  aspect-ratio: 200 / 260; /* egg: a bit taller than wide */
+  aspect-ratio: 1; /* a circle */
 }
 
 .dial-svg {
@@ -1119,7 +1119,7 @@ body.on-break .wave {
 .dial.has-dial .timer-display {
   position: relative; /* above the water */
   font-size: clamp(34px, 11vw, 46px);
-  margin-top: 14%; /* a bit lower, where the egg is widest */
+  margin-top: 0; /* digits in the middle of the circle */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1754,7 +1754,7 @@ body.on-break .big-btn:not(.danger) {
     margin-bottom: 0;
   }
 
-  /* A bigger egg and digits on the timer */
+  /* A bigger dial and digits on the timer */
   .dial.has-dial {
     width: min(42vh, 320px);
   }

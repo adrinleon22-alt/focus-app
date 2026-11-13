@@ -7,10 +7,10 @@
   <!-- Tells the browser this page supports both light and dark mode -->
   <meta name="color-scheme" content="light dark">
   <title>Telos</title>
-  <!-- "?v=10" = version number. Raise it with every release (together with CACHE_NAME
+  <!-- "?v=11" = version number. Raise it with every release (together with CACHE_NAME
        in sw.js): a new address can't come from an old saved copy, so the page,
        its styles and its code always belong to the same version. -->
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 
   <!-- Makes the app installable: name, icon, full screen (see manifest.json) -->
   <link rel="manifest" href="manifest.json">
@@ -331,17 +331,17 @@
           <line class="buddy-ledge" x1="22" y1="66" x2="98" y2="66"/>
         </svg>
       </div>
-      <!-- The clock. In Timer mode it sits inside an egg-shaped dial that fills
+      <!-- The clock. In Timer mode it sits inside a round dial that fills
            with water as time passes (full to the brim = block finished). -->
       <div id="dial" class="dial">
-        <svg id="dial-svg" class="dial-svg" viewBox="0 0 200 260" aria-hidden="true" hidden>
+        <svg id="dial-svg" class="dial-svg" viewBox="0 0 200 200" aria-hidden="true" hidden>
           <defs>
-            <!-- Egg shape: narrower at the top, rounder at the bottom. Water only shows inside it. -->
-            <clipPath id="dial-clip"><path d="M100 4 C150 4 196 92 196 160 C196 220 154 256 100 256 C46 256 4 220 4 160 C4 92 50 4 100 4 Z"/></clipPath>
+            <!-- Circle. The water only shows inside it. -->
+            <clipPath id="dial-clip"><path d="M100 5 A95 95 0 1 1 99.99 5 Z"/></clipPath>
           </defs>
           <g clip-path="url(#dial-clip)">
             <!-- Moved up and down by app.js to set the water level -->
-            <g id="water-level" transform="translate(0 265)">
+            <g id="water-level" transform="translate(0 205)">
               <!-- Two wave layers drifting in opposite directions = flowing water.
                    Each path is two wave lengths wide so the drift loops seamlessly. -->
               <path class="wave wave-back" d="M0 0 Q25 -7 50 0 T100 0 T150 0 T200 0 T250 0 T300 0 T350 0 T400 0 V300 H0 Z"/>
@@ -349,7 +349,7 @@
             </g>
           </g>
           <!-- The rim of the dial -->
-          <path class="dial-rim" d="M100 4 C150 4 196 92 196 160 C196 220 154 256 100 256 C46 256 4 220 4 160 C4 92 50 4 100 4 Z"/>
+          <path class="dial-rim" d="M100 5 A95 95 0 1 1 99.99 5 Z"/>
         </svg>
         <p id="timer-display" class="timer-display">0:00:00</p>
       </div>
@@ -382,6 +382,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=11" defer></script>
 </body>
 </html>

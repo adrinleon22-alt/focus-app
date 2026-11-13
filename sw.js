@@ -4,14 +4,14 @@
 
 // Name of our storage box for files. Change it when the LIST of files
 // below changes (e.g. a new file is added), so old copies get cleaned up.
-const CACHE_NAME = "telos-files-v10"; // v10: full-width laptop layout
+const CACHE_NAME = "telos-files-v11"; // v11: round timer dial
 
 // Everything the app needs to start.
 const APP_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=10",
-  "./app.js?v=10",
+  "./style.css?v=11",
+  "./app.js?v=11",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
